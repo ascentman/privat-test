@@ -30,6 +30,14 @@ class MovieSearchBloc extends Bloc<MovieSearchEvent, MovieSearchState> {
 
   String _lastQuery = '';
 
+  /// Identifies the search the user is currently waiting for.
+  ///
+  /// `restartable()` only cancels within a single `on<Event>` pipeline, so a
+  /// slow [QueryChanged] can still resolve after a [Cleared] or a newer
+  /// [Retried] and overwrite the screen with results for a query the user has
+  /// already moved on from. Comparing this token before emitting drops those.
+  int _requestId = 0;
+
   Future<void> _onQueryChanged(
     QueryChanged event,
     Emitter<MovieSearchState> emit,
@@ -43,10 +51,14 @@ class MovieSearchBloc extends Bloc<MovieSearchEvent, MovieSearchState> {
 
   void _onCleared(Cleared event, Emitter<MovieSearchState> emit) {
     _lastQuery = '';
+    // Invalidates anything still in flight, so a late response cannot undo the
+    // clear the user just asked for.
+    _requestId++;
     emit(const MovieSearchState.initial());
   }
 
   Future<void> _search(String query, Emitter<MovieSearchState> emit) async {
+    final requestId = ++_requestId;
     final trimmed = query.trim();
     if (trimmed.length < SearchMovies.minQueryLength) {
       // Too short is not an error the user needs shouted at them — the screen
@@ -57,6 +69,10 @@ class MovieSearchBloc extends Bloc<MovieSearchEvent, MovieSearchState> {
 
     emit(const MovieSearchState.loading());
     final result = await _searchMovies(trimmed);
+    if (requestId != _requestId) {
+      // Superseded while in flight — the screen has moved on.
+      return;
+    }
     switch (result) {
       case Ok(:final value):
         emit(
