@@ -37,6 +37,12 @@ secret_in_command='[^[:space:]"'"'"']*\.env([^[:alnum:]._-]|$)'
 # And the directory, since `cat assets/env/*` or `grep -r "" assets/env` reach
 # the key without the string `.env` ever appearing.
 secret_dir_in_command='(^|[^[:alnum:]_.~/-])[^[:space:]"'"'"']*assets/env([^[:alnum:]_-]|$)'
+# Shell traversals that read file *contents* recursively reach the key without
+# naming it or its directory at all. Unlike the Grep tool — which is ripgrep,
+# and skips the key because it is git-ignored — plain `grep -r` and
+# `find -exec cat` honour no such thing. Verified: in a scratch repo with the
+# file ignored, `rg` finds nothing and `grep -rl` finds it.
+recursive_read='(^|[;&|(][[:space:]]*|[[:space:]])(grep|egrep|fgrep)[[:space:]]+(-[[:alnum:]]*[rR]|--recursive|--dereference-recursive)|(^|[;&|(][[:space:]]*|[[:space:]])rg[[:space:]][^;&|]*(--no-ignore|-u{2,})|(^|[;&|(][[:space:]]*|[[:space:]])find[[:space:]][^;&|]*-exec[[:space:]]+(cat|grep|egrep|head|tail|less|more|awk|sed|xxd|base64)|(^|[;&|(][[:space:]]*|[[:space:]])(tar|cpio)[[:space:]]'
 
 deny() {
   jq -n --arg reason "$1" '{
@@ -70,6 +76,9 @@ if [[ -n "$command" ]]; then
   [[ -z "$scrubbed" ]] && scrubbed=$command
   if [[ "$scrubbed" =~ $secret_in_command || "$scrubbed" =~ $secret_dir_in_command ]]; then
     deny "Blocked by the project hook: that command reaches an env file holding the TMDB API key. Use assets/env/app.env.example, and ask the user to edit the real file themselves."
+  fi
+  if [[ "$scrubbed" =~ $recursive_read ]]; then
+    deny "Blocked by the project hook: recursive content reads in the shell ignore .gitignore, so they reach assets/env/app.env and its API key. Use the Grep tool instead — it is ripgrep and skips ignored files — or scope the command to a single file."
   fi
 fi
 
