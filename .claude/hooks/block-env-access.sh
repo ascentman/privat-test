@@ -74,10 +74,16 @@ if [[ -n "$command" ]]; then
   # template is not mistaken for touching the real thing.
   scrubbed=$(printf '%s' "$command" | sed -E 's/[^[:space:]]*\.example//g')
   [[ -z "$scrubbed" ]] && scrubbed=$command
-  if [[ "$scrubbed" =~ $secret_in_command || "$scrubbed" =~ $secret_dir_in_command ]]; then
+  # Match a backslash-stripped copy too. `\grep` is the usual way to sidestep an
+  # alias, and it also sidesteps a regex that expects the command name to sit on
+  # a word boundary; `\c\a\t` does the same per character. Only the copy used
+  # for matching is stripped — nothing here changes what would run.
+  unescaped=${scrubbed//\\/}
+  if [[ "$scrubbed" =~ $secret_in_command || "$scrubbed" =~ $secret_dir_in_command ||
+        "$unescaped" =~ $secret_in_command || "$unescaped" =~ $secret_dir_in_command ]]; then
     deny "Blocked by the project hook: that command reaches an env file holding the TMDB API key. Use assets/env/app.env.example, and ask the user to edit the real file themselves."
   fi
-  if [[ "$scrubbed" =~ $recursive_read ]]; then
+  if [[ "$scrubbed" =~ $recursive_read || "$unescaped" =~ $recursive_read ]]; then
     deny "Blocked by the project hook: recursive content reads in the shell ignore .gitignore, so they reach assets/env/app.env and its API key. Use the Grep tool instead — it is ripgrep and skips ignored files — or scope the command to a single file."
   fi
 fi
