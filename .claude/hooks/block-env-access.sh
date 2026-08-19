@@ -20,13 +20,17 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 0
 fi
 
-tool=$(printf '%s' "$payload" | jq -r '.tool_name // empty')
-file=$(printf '%s' "$payload" | jq -r '.tool_input.file_path // empty')
+# `file_path` covers Read/Edit/Write; `path` is what Grep uses, and Grep prints
+# file contents just as directly.
+file=$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty')
 command=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')
 
 # A path is a secret env file when its last segment ends in `.env`, or is `.env`
 # itself, and it is not a `.example` template.
 secret_path='(^|/)([^/]*\.)?env$|(^|/)\.env(\.[^/.]+)?$'
+# Grep can be pointed at the directory rather than the file and still print
+# what is inside it.
+secret_dir='(^|/)assets/env/?$'
 # The same, spotted inside a shell command: `.env` not followed by another
 # filename character, so `app.env.example` does not match.
 secret_in_command='[^[:space:]"'"'"']*\.env([^[:alnum:]._-]|$)'
@@ -42,8 +46,18 @@ deny() {
   exit 0
 }
 
-if [[ -n "$file" && "$file" =~ $secret_path && "$file" != *.example ]]; then
-  deny "Blocked by the project hook: $file holds the TMDB API key. Read assets/env/app.env.example instead, and ask the user to edit the real file themselves."
+if [[ -n "$file" ]]; then
+  # Match the path as given *and* as resolved: a symlink pointing at the key
+  # file would otherwise sail through on its own harmless-looking name.
+  resolved=$(realpath "$file" 2>/dev/null || printf '%s' "$file")
+  for candidate in "$file" "$resolved"; do
+    if [[ "$candidate" == *.example ]]; then
+      continue
+    fi
+    if [[ "$candidate" =~ $secret_path || "$candidate" =~ $secret_dir ]]; then
+      deny "Blocked by the project hook: $file holds (or contains) the TMDB API key. Read assets/env/app.env.example instead, and ask the user to edit the real file themselves."
+    fi
+  done
 fi
 
 if [[ -n "$command" && "$command" =~ $secret_in_command ]]; then
