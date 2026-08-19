@@ -39,6 +39,12 @@ class MovieDetailsBloc extends Bloc<MovieDetailsEvent, MovieDetailsState> {
       emit(const MovieDetailsState.loading());
     }
     final result = await _getMovieDetails(event.id);
+    if (emit.isDone) {
+      // Superseded by a newer request. `restartable()` only silences this
+      // handler's emits; the body runs on, and without this an older response
+      // would still overwrite _lastLoaded.
+      return;
+    }
     switch (result) {
       case Ok(:final value):
         _lastLoaded = value.movie;

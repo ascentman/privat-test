@@ -80,6 +80,47 @@ void main() {
   );
 
   blocTest<MovieDetailsBloc, MovieDetailsState>(
+    'a superseded response does not become the movie a later failure shows',
+    setUp: () {
+      var call = 0;
+      when(() => getMovieDetails(any())).thenAnswer((_) async {
+        call++;
+        switch (call) {
+          case 1:
+            // Slow, and superseded before it lands.
+            await Future<void>.delayed(const Duration(milliseconds: 200));
+            return Result.ok(
+              MovieDetailsResult(
+                movie: tBlackAdam.copyWith(title: 'Stale title'),
+              ),
+            );
+          case 2:
+            return Result.ok(MovieDetailsResult(movie: tBlackAdam));
+          default:
+            return const Result.err(Failure.network());
+        }
+      });
+    },
+    build: () => MovieDetailsBloc(getMovieDetails),
+    act: (bloc) async {
+      bloc.add(MovieDetailsEvent.requested(tBlackAdam.id));
+      bloc.add(MovieDetailsEvent.requested(tBlackAdam.id));
+      // Long enough for the superseded first response to arrive.
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      bloc.add(MovieDetailsEvent.requested(tBlackAdam.id));
+    },
+    wait: const Duration(milliseconds: 100),
+    verify: (bloc) {
+      final state = bloc.state as DetailsFailure;
+      expect(
+        state.movie?.title,
+        tBlackAdam.title,
+        reason: 'the stale response must not have replaced what was shown',
+      );
+    },
+  );
+
+  blocTest<MovieDetailsBloc, MovieDetailsState>(
     'reports a failure with no movie when nothing was ever loaded',
     setUp: () {
       when(
