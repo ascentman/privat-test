@@ -9,10 +9,16 @@ import 'package:sqflite/sqflite.dart';
 /// preserve without duplicating movie rows per query.
 abstract final class AppDatabase {
   static const String fileName = 'movies.db';
-  static const int schemaVersion = 1;
+  static const int schemaVersion = 2;
 
   static const String moviesTable = 'movies';
   static const String searchResultsTable = 'search_results';
+
+  /// Records that a query was actually run, which [searchResultsTable] alone
+  /// cannot express: a search that legitimately matched nothing stores no
+  /// rows there and would otherwise be indistinguishable from one that was
+  /// never performed.
+  static const String searchedQueriesTable = 'searched_queries';
 
   // movies columns
   static const String columnId = 'id';
@@ -27,6 +33,10 @@ abstract final class AppDatabase {
   static const String columnQuery = 'query';
   static const String columnMovieId = 'movie_id';
   static const String columnPosition = 'position';
+
+  /// Total matches the source reported for a query, which is larger than the
+  /// number of cached rows whenever the answer was truncated to one page.
+  static const String columnTotalResults = 'total_results';
 
   /// Opens (and creates on first launch) the cache database.
   ///
@@ -62,7 +72,33 @@ abstract final class AppDatabase {
         await db.execute(
           'CREATE INDEX idx_search_query ON $searchResultsTable ($columnQuery)',
         );
+        await _createSearchedQueries(db);
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await _createSearchedQueries(db);
+          // Backfill from what v1 already cached. Without this every query an
+          // existing install had stored would read as never searched, and its
+          // offline results would sit in the database unreachable.
+          // v1 never recorded the source's total, so the best available
+          // answer is the number of rows it did store.
+          await db.rawInsert(
+            'INSERT OR IGNORE INTO $searchedQueriesTable '
+            '($columnQuery, $columnCachedAt, $columnTotalResults) '
+            'SELECT $columnQuery, ?, COUNT(*) FROM $searchResultsTable '
+            'GROUP BY $columnQuery',
+            [DateTime.now().millisecondsSinceEpoch],
+          );
+        }
       },
     );
   }
+
+  static Future<void> _createSearchedQueries(DatabaseExecutor db) => db.execute('''
+    CREATE TABLE $searchedQueriesTable (
+      $columnQuery TEXT PRIMARY KEY,
+      $columnCachedAt INTEGER NOT NULL,
+      $columnTotalResults INTEGER NOT NULL DEFAULT 0
+    )
+  ''');
 }
