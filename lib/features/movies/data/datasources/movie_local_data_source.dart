@@ -36,11 +36,7 @@ class MovieLocalDataSourceImpl implements MovieLocalDataSource {
       await _db.transaction((txn) async {
         final now = DateTime.now();
         for (final movie in movies) {
-          await txn.insert(
-            AppDatabase.moviesTable,
-            movie.toDb(cachedAt: now),
-            conflictAlgorithm: ConflictAlgorithm.replace,
-          );
+          await _upsertMovie(txn, movie, cachedAt: now);
         }
         // Replace the whole result set for this query so removed hits do not
         // linger in the cache.
@@ -84,14 +80,39 @@ class MovieLocalDataSourceImpl implements MovieLocalDataSource {
   @override
   Future<void> cacheMovie(MovieModel movie) async {
     try {
-      await _db.insert(
-        AppDatabase.moviesTable,
-        movie.toDb(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      await _upsertMovie(_db, movie);
     } on DatabaseException catch (error) {
       throw CacheException(error.toString());
     }
+  }
+
+  /// Writes a movie without ever deleting the existing row.
+  ///
+  /// `ConflictAlgorithm.replace` would be the obvious choice, but SQLite
+  /// implements REPLACE as DELETE + INSERT, and that delete fires
+  /// `ON DELETE CASCADE` just like an explicit one. Re-caching a movie would
+  /// therefore drop its [AppDatabase.searchResultsTable] rows for *every*
+  /// query, so opening a film's details would quietly evict it from the
+  /// cached results of unrelated searches. An upsert updates in place and
+  /// leaves the children alone.
+  Future<void> _upsertMovie(
+    DatabaseExecutor executor,
+    MovieModel movie, {
+    DateTime? cachedAt,
+  }) {
+    final row = movie.toDb(cachedAt: cachedAt);
+    final columns = row.keys.join(', ');
+    final placeholders = List.filled(row.length, '?').join(', ');
+    final assignments = row.keys
+        .where((column) => column != AppDatabase.columnId)
+        .map((column) => '$column = excluded.$column')
+        .join(', ');
+    return executor.rawInsert(
+      'INSERT INTO ${AppDatabase.moviesTable} ($columns) '
+      'VALUES ($placeholders) '
+      'ON CONFLICT(${AppDatabase.columnId}) DO UPDATE SET $assignments',
+      row.values.toList(),
+    );
   }
 
   @override

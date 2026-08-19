@@ -65,5 +65,12 @@ GoRouter createRouter() => GoRouter(
 /// screen, on every platform.
 String? _normalizeDeepLink(BuildContext context, GoRouterState state) {
   final match = _bareMovieId.firstMatch(state.uri.path);
-  return match == null ? null : AppRoutes.movie(int.parse(match.group(1)!));
+  if (match == null) {
+    return null;
+  }
+  // tryParse, not parse: the pattern accepts any number of digits, so a
+  // garbled link like `privattest://99999999999999999999` overflows a 64-bit
+  // int and would otherwise throw out of the router's redirect.
+  final id = int.tryParse(match.group(1)!);
+  return id == null ? null : AppRoutes.movie(id);
 }
