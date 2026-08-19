@@ -93,10 +93,16 @@ class _MovieSearchPageState extends State<MovieSearchPage> {
                     const MovieSearchEvent.retried(),
                   ),
                 ),
-                SearchLoaded(:final movies, :final fromCache) => _ResultList(
-                  movies: movies,
-                  fromCache: fromCache,
-                ),
+                SearchLoaded(
+                  :final movies,
+                  :final fromCache,
+                  :final totalResults,
+                ) =>
+                  _ResultList(
+                    movies: movies,
+                    fromCache: fromCache,
+                    totalResults: totalResults,
+                  ),
               },
             ),
           ),
@@ -107,19 +113,32 @@ class _MovieSearchPageState extends State<MovieSearchPage> {
 }
 
 class _ResultList extends StatelessWidget {
-  const _ResultList({required this.movies, required this.fromCache});
+  const _ResultList({
+    required this.movies,
+    required this.fromCache,
+    required this.totalResults,
+  });
 
   final List<Movie> movies;
   final bool fromCache;
+  final int totalResults;
+
+  /// True when the source has more matches than this one page carries.
+  bool get _isTruncated => totalResults > movies.length;
 
   @override
   Widget build(BuildContext context) {
     return _WithCacheBanner(
       fromCache: fromCache,
       child: ListView.separated(
-        itemCount: movies.length,
+        // One extra row for the truncation notice, so a partial list never
+        // passes itself off as everything TMDB knows.
+        itemCount: movies.length + (_isTruncated ? 1 : 0),
         separatorBuilder: (_, _) => const Divider(height: 1),
         itemBuilder: (context, index) {
+          if (index == movies.length) {
+            return _TruncationNotice(shown: movies.length, total: totalResults);
+          }
           final movie = movies[index];
           return MovieListTile(
             movie: movie,
@@ -147,7 +166,10 @@ class _WithCacheBanner extends StatelessWidget {
       return child;
     }
     return Column(
-      children: [const _OfflineBanner(), Expanded(child: child)],
+      children: [
+        const _OfflineBanner(),
+        Expanded(child: child),
+      ],
     );
   }
 }
@@ -179,6 +201,29 @@ class _OfflineBanner extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Tells the user the list is only the first page of what TMDB matched.
+class _TruncationNotice extends StatelessWidget {
+  const _TruncationNotice({required this.shown, required this.total});
+
+  final int shown;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Text(
+        'Showing the first $shown of $total matches.',
+        textAlign: TextAlign.center,
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }

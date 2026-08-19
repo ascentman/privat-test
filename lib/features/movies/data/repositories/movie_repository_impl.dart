@@ -29,7 +29,10 @@ class MovieRepositoryImpl implements MovieRepository {
       // A failing cache write must not fail an otherwise good response.
       await _tryCache(() => _local.cacheSearchResults(cacheKey, response.results));
       return Result.ok(
-        MovieSearchResult(movies: _toEntities(response.results)),
+        MovieSearchResult(
+          movies: _toEntities(response.results),
+          totalResults: response.totalResults,
+        ),
       );
     } on DioException catch (error) {
       return _searchFromCache(cacheKey, mapDioException(error));
@@ -80,7 +83,12 @@ class MovieRepositoryImpl implements MovieRepository {
         return Result.err(failure);
       }
       return Result.ok(
-        MovieSearchResult(movies: _toEntities(cached), fromCache: true),
+        MovieSearchResult(
+          movies: _toEntities(cached),
+          fromCache: true,
+          // The cache holds exactly what was stored, nothing beyond it.
+          totalResults: cached.length,
+        ),
       );
     } on CacheException {
       return Result.err(failure);

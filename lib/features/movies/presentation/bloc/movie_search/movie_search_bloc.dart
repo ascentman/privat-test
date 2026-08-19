@@ -81,6 +81,7 @@ class MovieSearchBloc extends Bloc<MovieSearchEvent, MovieSearchState> {
               : MovieSearchState.loaded(
                   movies: value.movies,
                   fromCache: value.fromCache,
+                  totalResults: value.totalResults,
                 ),
         );
       case Err(:final failure):

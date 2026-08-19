@@ -119,6 +119,40 @@ void main() {
     verify(() => bloc.add(const MovieSearchEvent.cleared())).called(1);
   });
 
+  testWidgets('says so when the list is only the first page of matches', (
+    tester,
+  ) async {
+    whenListen(
+      bloc,
+      const Stream<MovieSearchState>.empty(),
+      initialState: MovieSearchState.loaded(
+        movies: [tBlackAdam, tShazam],
+        totalResults: 340,
+      ),
+    );
+
+    await pumpPage(tester);
+
+    expect(find.textContaining('first 2 of 340'), findsOneWidget);
+  });
+
+  testWidgets('no truncation notice when the page holds every match', (
+    tester,
+  ) async {
+    whenListen(
+      bloc,
+      const Stream<MovieSearchState>.empty(),
+      initialState: MovieSearchState.loaded(
+        movies: [tBlackAdam, tShazam],
+        totalResults: 2,
+      ),
+    );
+
+    await pumpPage(tester);
+
+    expect(find.textContaining('Showing the first'), findsNothing);
+  });
+
   testWidgets('typing dispatches a query event', (tester) async {
     whenListen(
       bloc,
