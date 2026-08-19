@@ -16,6 +16,15 @@ sealed class Failure with _$Failure {
   const factory Failure.server({int? statusCode, String? message}) =
       ServerFailure;
 
+  /// The API rejected the key (401/403). A configuration problem, not a
+  /// transient one, so it must never be answered from cache.
+  const factory Failure.unauthorized([String? message]) = UnauthorizedFailure;
+
+  /// Something outside the transport's own error model went wrong — most
+  /// likely a defect on our side. Kept distinct so a bug cannot masquerade as
+  /// being offline and quietly serve stale data.
+  const factory Failure.unexpected([String? message]) = UnexpectedFailure;
+
   /// The request was cancelled because a newer one superseded it. Not an
   /// error the user caused and not a sign of being offline.
   const factory Failure.cancelled() = CancelledFailure;
@@ -42,6 +51,10 @@ sealed class Failure with _$Failure {
       'Could not establish a secure connection to the movie service.',
     ServerFailure(:final statusCode, :final message) =>
       message ?? 'The movie service failed (${statusCode ?? 'unknown'}).',
+    UnauthorizedFailure(:final message) =>
+      message ?? 'The TMDB API key is missing or invalid.',
+    UnexpectedFailure(:final message) =>
+      message ?? 'Something went wrong. Please try again.',
     CacheFailure(:final message) => message ?? 'Local cache is unavailable.',
     QueryTooShortFailure(:final minLength) =>
       'Type at least $minLength characters to search.',

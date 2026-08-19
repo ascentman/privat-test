@@ -23,8 +23,10 @@ Failure mapDioException(DioException exception) {
     // with stale cached data and an "offline" message would hide it.
     case DioExceptionType.badCertificate:
       return const Failure.insecureConnection();
+    // Dio's catch-all: it also wraps errors thrown by our own code. Reporting
+    // those as "offline" would hide a defect behind stale cached data.
     case DioExceptionType.unknown:
-      return const Failure.network();
+      return Failure.unexpected(exception.message);
     case DioExceptionType.badResponse:
       final statusCode = exception.response?.statusCode;
       if (statusCode == 404) {
@@ -37,6 +39,11 @@ Failure mapDioException(DioException exception) {
       final message = data is Map<String, dynamic>
           ? data['status_message']?.toString()
           : null;
+      // A rejected key is a configuration problem: retrying or answering from
+      // cache would hide it behind stale results forever.
+      if (statusCode == 401 || statusCode == 403) {
+        return Failure.unauthorized(message);
+      }
       return Failure.server(statusCode: statusCode, message: message);
   }
 }
@@ -46,6 +53,8 @@ bool isRecoverableFromCache(Failure failure) => switch (failure) {
   NetworkFailure() || ServerFailure() => true,
   CancelledFailure() ||
   InsecureConnectionFailure() ||
+  UnauthorizedFailure() ||
+  UnexpectedFailure() ||
   CacheFailure() ||
   QueryTooShortFailure() ||
   NotFoundFailure() => false,
