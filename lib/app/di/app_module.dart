@@ -24,7 +24,15 @@ abstract class AppModule {
     );
     dio.interceptors.add(ApiKeyInterceptor(config));
     if (kDebugMode) {
-      dio.interceptors.add(LogInterceptor(requestBody: false));
+      // LogInterceptor prints the full request URI, which by this point carries
+      // the api_key query parameter — straight into the console, CI output and
+      // screen recordings. Redact it on the way out.
+      dio.interceptors.add(
+        LogInterceptor(
+          requestBody: false,
+          logPrint: (Object? line) => debugPrint(redactApiKey('$line')),
+        ),
+      );
     }
     return dio;
   }

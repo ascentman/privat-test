@@ -79,10 +79,12 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # The TMDB API key is read from this file at runtime via flutter_dotenv.
-  # `.env` is git-ignored; copy `.env.example` and fill in your own key.
+  # The TMDB API key is read at runtime via flutter_dotenv from
+  # assets/env/app.env, which is git-ignored. The directory is declared rather
+  # than the file: a missing app.env then leaves the app to report the missing
+  # key itself, instead of failing asset resolution at build time.
   assets:
-    - .env
+    - assets/env/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

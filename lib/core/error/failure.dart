@@ -20,6 +20,10 @@ sealed class Failure with _$Failure {
   /// error the user caused and not a sign of being offline.
   const factory Failure.cancelled() = CancelledFailure;
 
+  /// TLS certificate validation failed — kept apart from [NetworkFailure] so a
+  /// possible interception is never quietly answered with stale cached data.
+  const factory Failure.insecureConnection() = InsecureConnectionFailure;
+
   /// Reading from or writing to the local sqflite cache failed.
   const factory Failure.cache([String? message]) = CacheFailure;
 
@@ -34,6 +38,8 @@ sealed class Failure with _$Failure {
     NetworkFailure() =>
       'No internet connection and nothing cached for this request.',
     CancelledFailure() => 'The request was cancelled.',
+    InsecureConnectionFailure() =>
+      'Could not establish a secure connection to the movie service.',
     ServerFailure(:final statusCode, :final message) =>
       message ?? 'The movie service failed (${statusCode ?? 'unknown'}).',
     CacheFailure(:final message) => message ?? 'Local cache is unavailable.',

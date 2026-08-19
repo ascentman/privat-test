@@ -19,7 +19,10 @@ Failure mapDioException(DioException exception) {
     // the cache-fallback path claim the device is offline.
     case DioExceptionType.cancel:
       return const Failure.cancelled();
+    // Not folded into NetworkFailure: answering a failed certificate check
+    // with stale cached data and an "offline" message would hide it.
     case DioExceptionType.badCertificate:
+      return const Failure.insecureConnection();
     case DioExceptionType.unknown:
       return const Failure.network();
     case DioExceptionType.badResponse:
@@ -42,6 +45,7 @@ Failure mapDioException(DioException exception) {
 bool isRecoverableFromCache(Failure failure) => switch (failure) {
   NetworkFailure() || ServerFailure() => true,
   CancelledFailure() ||
+  InsecureConnectionFailure() ||
   CacheFailure() ||
   QueryTooShortFailure() ||
   NotFoundFailure() => false,

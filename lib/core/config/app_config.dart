@@ -13,6 +13,10 @@ class AppConfig {
 
   static const String apiKeyEnvName = 'TMDB_API_KEY';
 
+  /// Asset holding the key. Git-ignored, and loaded optionally: when it is
+  /// absent the app reports the missing key rather than failing to start.
+  static const String envAssetPath = 'assets/env/app.env';
+
   static const String baseUrl = 'https://api.themoviedb.org/3';
 
   /// `w500` is the width TMDB recommends for list/detail posters.

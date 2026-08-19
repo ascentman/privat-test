@@ -21,7 +21,10 @@ migrate_working_dir/
 # VS Code
 .vscode/
 
-# Secrets — the TMDB API key lives here, see .env.example
+# Secrets — the TMDB API key lives here, see assets/env/app.env.example.
+# The directory around it is a declared asset and stays in the repo, so a fresh
+# checkout still builds without this file.
+assets/env/app.env
 .env
 
 # Flutter/Dart/Pub related
