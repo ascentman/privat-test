@@ -33,6 +33,12 @@ class MovieRepositoryImpl implements MovieRepository {
       );
     } on DioException catch (error) {
       return _searchFromCache(cacheKey, mapDioException(error));
+    } catch (error) {
+      // Deserialisation runs after Dio has already returned, so a response
+      // that parses as JSON but not as our model throws a plain TypeError.
+      // Uncaught, it would escape into the bloc, which reports errors without
+      // emitting — leaving the screen on its spinner with no way out.
+      return Result.err(Failure.unexpected(error.toString()));
     }
   }
 
@@ -53,6 +59,9 @@ class MovieRepositoryImpl implements MovieRepository {
       } on CacheException {
         return Result.err(failure);
       }
+    } catch (error) {
+      // See searchMovies: a model-shape mismatch is not a DioException.
+      return Result.err(Failure.unexpected(error.toString()));
     }
   }
 
