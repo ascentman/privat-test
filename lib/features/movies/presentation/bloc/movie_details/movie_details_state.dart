@@ -6,6 +6,5 @@ sealed class MovieDetailsState with _$MovieDetailsState {
 
   const factory MovieDetailsState.loaded(Movie movie) = DetailsLoaded;
 
-  const factory MovieDetailsState.failure(Failure failure, {int? movieId}) =
-      DetailsFailure;
+  const factory MovieDetailsState.failure(Failure failure) = DetailsFailure;
 }

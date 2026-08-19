@@ -20,6 +20,7 @@ class MovieSearchBloc extends Bloc<MovieSearchEvent, MovieSearchState> {
     : super(const MovieSearchState.initial()) {
     on<QueryChanged>(_onQueryChanged, transformer: _debounceRestartable());
     on<Retried>(_onRetried, transformer: restartable());
+    on<Cleared>(_onCleared, transformer: restartable());
   }
 
   /// Long enough to swallow intermediate keystrokes, short enough to feel live.
@@ -39,6 +40,11 @@ class MovieSearchBloc extends Bloc<MovieSearchEvent, MovieSearchState> {
 
   Future<void> _onRetried(Retried event, Emitter<MovieSearchState> emit) =>
       _search(_lastQuery, emit);
+
+  void _onCleared(Cleared event, Emitter<MovieSearchState> emit) {
+    _lastQuery = '';
+    emit(const MovieSearchState.initial());
+  }
 
   Future<void> _search(String query, Emitter<MovieSearchState> emit) async {
     final trimmed = query.trim();

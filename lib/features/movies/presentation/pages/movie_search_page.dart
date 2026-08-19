@@ -57,7 +57,9 @@ class _MovieSearchPageState extends State<MovieSearchPage> {
                           icon: const Icon(Icons.clear),
                           onPressed: () {
                             _controller.clear();
-                            _onQueryChanged('');
+                            context.read<MovieSearchBloc>().add(
+                              const MovieSearchEvent.cleared(),
+                            );
                           },
                         ),
                 ),

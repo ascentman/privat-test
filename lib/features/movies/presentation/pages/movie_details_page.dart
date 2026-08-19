@@ -50,6 +50,15 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
             DetailsLoading() when movie == null => const Center(
               child: CircularProgressIndicator(),
             ),
+            // Reached when the refresh failed but the list handed us something
+            // to show. Say so instead of passing stale data off as current.
+            DetailsFailure(:final failure) => _DetailsBody(
+              movie: movie!,
+              staleNotice: failure.userMessage,
+              onRetry: () => context.read<MovieDetailsBloc>().add(
+                MovieDetailsEvent.requested(widget.movieId),
+              ),
+            ),
             _ => _DetailsBody(movie: movie!),
           },
         );
@@ -59,9 +68,14 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
 }
 
 class _DetailsBody extends StatelessWidget {
-  const _DetailsBody({required this.movie});
+  const _DetailsBody({required this.movie, this.staleNotice, this.onRetry});
 
   final Movie movie;
+
+  /// Set when the movie on screen came from the list and could not be
+  /// refreshed, so the user is told rather than shown stale data as current.
+  final String? staleNotice;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +85,10 @@ class _DetailsBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (staleNotice != null) ...[
+            _StaleBanner(message: staleNotice!, onRetry: onRetry),
+            const SizedBox(height: 16),
+          ],
           Center(
             child: PosterImage(
               posterPath: movie.posterPath,
@@ -105,6 +123,49 @@ class _DetailsBody extends StatelessWidget {
                 : movie.overview,
             style: theme.textTheme.bodyLarge,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StaleBanner extends StatelessWidget {
+  const _StaleBanner({required this.message, this.onRetry});
+
+  static const Key bannerKey = Key('movie-details-stale-banner');
+
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      key: bannerKey,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.sync_problem,
+            size: 18,
+            color: theme.colorScheme.onSecondaryContainer,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              "Couldn't refresh: $message",
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
+            ),
+          ),
+          if (onRetry != null)
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
         ],
       ),
     );

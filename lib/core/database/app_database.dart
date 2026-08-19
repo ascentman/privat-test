@@ -73,6 +73,15 @@ abstract final class AppDatabase {
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await _createSearchedQueries(db);
+          // Backfill from what v1 already cached. Without this every query an
+          // existing install had stored would read as never searched, and its
+          // offline results would sit in the database unreachable.
+          await db.rawInsert(
+            'INSERT OR IGNORE INTO $searchedQueriesTable '
+            '($columnQuery, $columnCachedAt) '
+            'SELECT DISTINCT $columnQuery, ? FROM $searchResultsTable',
+            [DateTime.now().millisecondsSinceEpoch],
+          );
         }
       },
     );

@@ -26,13 +26,10 @@ class MovieDetailsBloc extends Bloc<MovieDetailsEvent, MovieDetailsState> {
 
   final GetMovieDetails _getMovieDetails;
 
-  int? _lastId;
-
   Future<void> _onRequested(
     DetailsRequested event,
     Emitter<MovieDetailsState> emit,
   ) async {
-    _lastId = event.id;
     // Keep any optimistic movie on screen while refreshing.
     if (state is! DetailsLoaded) {
       emit(const MovieDetailsState.loading());
@@ -42,7 +39,7 @@ class MovieDetailsBloc extends Bloc<MovieDetailsEvent, MovieDetailsState> {
       case Ok(:final value):
         emit(MovieDetailsState.loaded(value));
       case Err(:final failure):
-        emit(MovieDetailsState.failure(failure, movieId: _lastId));
+        emit(MovieDetailsState.failure(failure));
     }
   }
 }
