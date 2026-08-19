@@ -12,8 +12,11 @@ abstract class MovieLocalDataSource {
   Future<void> cacheSearchResults(String query, List<MovieModel> movies);
 
   /// Previously cached results for [query], in their original order.
-  /// Empty when the query has never been searched.
-  Future<List<MovieModel>> getCachedSearch(String query);
+  ///
+  /// `null` when the query has never been searched, as opposed to an empty
+  /// list for a query that was searched and legitimately matched nothing —
+  /// offline, those two deserve different answers.
+  Future<List<MovieModel>?> getCachedSearch(String query);
 
   Future<void> cacheMovie(MovieModel movie);
 
@@ -52,6 +55,12 @@ class MovieLocalDataSourceImpl implements MovieLocalDataSource {
             AppDatabase.columnPosition: position,
           }, conflictAlgorithm: ConflictAlgorithm.replace);
         }
+        // Recorded even for an empty result set: that is the only way a later
+        // offline search can tell "no matches" from "never looked".
+        await txn.insert(AppDatabase.searchedQueriesTable, {
+          AppDatabase.columnQuery: query,
+          AppDatabase.columnCachedAt: now.millisecondsSinceEpoch,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       });
     } on DatabaseException catch (error) {
       throw CacheException(error.toString());
@@ -59,8 +68,18 @@ class MovieLocalDataSourceImpl implements MovieLocalDataSource {
   }
 
   @override
-  Future<List<MovieModel>> getCachedSearch(String query) async {
+  Future<List<MovieModel>?> getCachedSearch(String query) async {
     try {
+      final searched = await _db.query(
+        AppDatabase.searchedQueriesTable,
+        columns: [AppDatabase.columnQuery],
+        where: '${AppDatabase.columnQuery} = ?',
+        whereArgs: [query],
+        limit: 1,
+      );
+      if (searched.isEmpty) {
+        return null;
+      }
       final rows = await _db.rawQuery(
         '''
         SELECT m.* FROM ${AppDatabase.moviesTable} m

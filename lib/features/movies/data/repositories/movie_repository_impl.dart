@@ -65,7 +65,9 @@ class MovieRepositoryImpl implements MovieRepository {
     }
     try {
       final cached = await _local.getCachedSearch(cacheKey);
-      if (cached.isEmpty) {
+      // A cached empty result is still an answer: the query genuinely matched
+      // nothing, and saying so beats claiming to be offline.
+      if (cached == null) {
         return Result.err(failure);
       }
       return Result.ok(

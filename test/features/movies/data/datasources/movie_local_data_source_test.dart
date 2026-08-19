@@ -55,8 +55,16 @@ void main() {
     expect(await dataSource.getCachedSearch('shazam'), [tShazamModel]);
   });
 
-  test('returns an empty list for a query that was never cached', () async {
-    expect(await dataSource.getCachedSearch('unseen'), isEmpty);
+  test('returns null for a query that was never searched', () async {
+    expect(await dataSource.getCachedSearch('unseen'), isNull);
+  });
+
+  test('remembers a search that legitimately matched nothing', () async {
+    // Offline, this has to stay distinguishable from "never searched":
+    // one means "no such film", the other means "no idea".
+    await dataSource.cacheSearchResults('zzzqqq', const []);
+
+    expect(await dataSource.getCachedSearch('zzzqqq'), isEmpty);
   });
 
   test('re-caching a movie keeps it in the results of earlier queries', () async {

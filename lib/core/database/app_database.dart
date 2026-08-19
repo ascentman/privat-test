@@ -9,10 +9,16 @@ import 'package:sqflite/sqflite.dart';
 /// preserve without duplicating movie rows per query.
 abstract final class AppDatabase {
   static const String fileName = 'movies.db';
-  static const int schemaVersion = 1;
+  static const int schemaVersion = 2;
 
   static const String moviesTable = 'movies';
   static const String searchResultsTable = 'search_results';
+
+  /// Records that a query was actually run, which [searchResultsTable] alone
+  /// cannot express: a search that legitimately matched nothing stores no
+  /// rows there and would otherwise be indistinguishable from one that was
+  /// never performed.
+  static const String searchedQueriesTable = 'searched_queries';
 
   // movies columns
   static const String columnId = 'id';
@@ -62,7 +68,20 @@ abstract final class AppDatabase {
         await db.execute(
           'CREATE INDEX idx_search_query ON $searchResultsTable ($columnQuery)',
         );
+        await _createSearchedQueries(db);
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await _createSearchedQueries(db);
+        }
       },
     );
   }
+
+  static Future<void> _createSearchedQueries(DatabaseExecutor db) => db.execute('''
+    CREATE TABLE $searchedQueriesTable (
+      $columnQuery TEXT PRIMARY KEY,
+      $columnCachedAt INTEGER NOT NULL
+    )
+  ''');
 }
