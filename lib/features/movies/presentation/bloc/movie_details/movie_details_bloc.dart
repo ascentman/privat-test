@@ -34,8 +34,16 @@ class MovieDetailsBloc extends Bloc<MovieDetailsEvent, MovieDetailsState> {
     DetailsRequested event,
     Emitter<MovieDetailsState> emit,
   ) async {
-    // Keep any optimistic movie on screen while refreshing.
-    if (state is! DetailsLoaded) {
+    // Keep whatever is already on screen while refreshing. The test is
+    // "is there a movie to show", not "did the last attempt succeed": a
+    // failure carries the last loaded movie too, so a second retry from a
+    // failed one must not blank the screen either.
+    final showingAMovie = switch (state) {
+      DetailsLoaded() => true,
+      DetailsFailure(:final movie) => movie != null,
+      DetailsLoading() => false,
+    };
+    if (!showingAMovie) {
       emit(const MovieDetailsState.loading());
     }
     final result = await _getMovieDetails(event.id);

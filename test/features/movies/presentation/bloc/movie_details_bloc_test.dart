@@ -121,6 +121,35 @@ void main() {
   );
 
   blocTest<MovieDetailsBloc, MovieDetailsState>(
+    'a second retry from a failure keeps the movie on screen',
+    setUp: () {
+      var call = 0;
+      when(() => getMovieDetails(any())).thenAnswer((_) async {
+        call++;
+        return call == 1
+            ? Result.ok(MovieDetailsResult(movie: tBlackAdam, fromCache: true))
+            : const Result.err(Failure.network());
+      });
+    },
+    build: () => MovieDetailsBloc(getMovieDetails),
+    act: (bloc) async {
+      bloc.add(MovieDetailsEvent.requested(tBlackAdam.id));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      bloc.add(MovieDetailsEvent.requested(tBlackAdam.id));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      bloc.add(MovieDetailsEvent.requested(tBlackAdam.id));
+    },
+    wait: const Duration(milliseconds: 50),
+    expect: () => [
+      const MovieDetailsState.loading(),
+      MovieDetailsState.loaded(tBlackAdam, fromCache: true),
+      MovieDetailsState.failure(const Failure.network(), movie: tBlackAdam),
+      // Notably no second loading: a cold-start deep link has no movie to fall
+      // back on, so emitting one here would blank the screen.
+    ],
+  );
+
+  blocTest<MovieDetailsBloc, MovieDetailsState>(
     'reports a failure with no movie when nothing was ever loaded',
     setUp: () {
       when(
