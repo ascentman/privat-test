@@ -34,6 +34,9 @@ secret_dir='(^|/)assets/env/?$'
 # The same, spotted inside a shell command: `.env` not followed by another
 # filename character, so `app.env.example` does not match.
 secret_in_command='[^[:space:]"'"'"']*\.env([^[:alnum:]._-]|$)'
+# And the directory, since `cat assets/env/*` or `grep -r "" assets/env` reach
+# the key without the string `.env` ever appearing.
+secret_dir_in_command='(^|[^[:alnum:]_.~/-])[^[:space:]"'"'"']*assets/env([^[:alnum:]_-]|$)'
 
 deny() {
   jq -n --arg reason "$1" '{
@@ -60,8 +63,14 @@ if [[ -n "$file" ]]; then
   done
 fi
 
-if [[ -n "$command" && "$command" =~ $secret_in_command ]]; then
-  deny "Blocked by the project hook: that command touches an env file holding the TMDB API key. Use assets/env/app.env.example, and ask the user to edit the real file themselves."
+if [[ -n "$command" ]]; then
+  # Drop `.example` arguments before matching, so committing or reading the
+  # template is not mistaken for touching the real thing.
+  scrubbed=$(printf '%s' "$command" | sed -E 's/[^[:space:]]*\.example//g')
+  [[ -z "$scrubbed" ]] && scrubbed=$command
+  if [[ "$scrubbed" =~ $secret_in_command || "$scrubbed" =~ $secret_dir_in_command ]]; then
+    deny "Blocked by the project hook: that command reaches an env file holding the TMDB API key. Use assets/env/app.env.example, and ask the user to edit the real file themselves."
+  fi
 fi
 
 exit 0
