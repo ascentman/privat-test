@@ -34,12 +34,14 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="privattest"/>
             </intent-filter>
+            <!-- Lets the Flutter engine forward incoming links to
+                 go_router instead of requiring a platform channel of our own.
+                 Read from the *activity's* metadata, so it has to live in
+                 here: on <application> the engine never sees it. -->
+            <meta-data
+                android:name="flutter_deeplinking_enabled"
+                android:value="true" />
         </activity>
-        <!-- Lets the Flutter engine forward incoming links to go_router
-             instead of requiring a platform channel of our own. -->
-        <meta-data
-            android:name="flutter_deeplinking_enabled"
-            android:value="true" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
