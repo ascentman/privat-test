@@ -7,6 +7,21 @@
 
 # The following line activates a set of recommended lints for Flutter apps,
 # packages, and plugins designed to encourage good coding practices.
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
+    # Generated code is owned by build_runner, never hand-edited.
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.config.dart"
+  errors:
+    invalid_annotation_target: ignore
 include: package:flutter_lints/flutter.yaml
 
 linter:
@@ -21,8 +36,12 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    always_declare_return_types: true
+    prefer_single_quotes: true
+    prefer_final_locals: true
+    require_trailing_commas: true
+    unawaited_futures: true
+    directives_ordering: true
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
