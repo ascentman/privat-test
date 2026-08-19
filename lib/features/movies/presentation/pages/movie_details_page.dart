@@ -35,10 +35,15 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
   Widget build(BuildContext context) {
     return BlocBuilder<MovieDetailsBloc, MovieDetailsState>(
       builder: (context, state) {
-        final movie = switch (state) {
-          DetailsLoaded(:final movie) => movie,
-          _ => widget.initialMovie,
-        };
+        final movie =
+            switch (state) {
+              DetailsLoaded(:final movie) => movie,
+              // A failed refresh keeps whatever was last loaded, so a retry
+              // that goes wrong does not blank a screen the user was reading.
+              DetailsFailure(:final movie) => movie,
+              DetailsLoading() => null,
+            } ??
+            widget.initialMovie;
         return Scaffold(
           appBar: AppBar(title: Text(movie?.title ?? 'Movie')),
           body: switch (state) {

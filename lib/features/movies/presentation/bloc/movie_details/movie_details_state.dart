@@ -11,5 +11,9 @@ sealed class MovieDetailsState with _$MovieDetailsState {
     @Default(false) bool fromCache,
   }) = DetailsLoaded;
 
-  const factory MovieDetailsState.failure(Failure failure) = DetailsFailure;
+  /// [movie] is whatever was last shown successfully, so a failed refresh
+  /// leaves the screen as it was rather than throwing away a copy the device
+  /// still holds.
+  const factory MovieDetailsState.failure(Failure failure, {Movie? movie}) =
+      DetailsFailure;
 }

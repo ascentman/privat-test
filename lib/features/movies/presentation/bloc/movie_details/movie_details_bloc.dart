@@ -26,6 +26,10 @@ class MovieDetailsBloc extends Bloc<MovieDetailsEvent, MovieDetailsState> {
 
   final GetMovieDetails _getMovieDetails;
 
+  /// The last movie successfully shown, kept across retries: the widget only
+  /// knows the one the list handed it, which a deep link never provides.
+  Movie? _lastLoaded;
+
   Future<void> _onRequested(
     DetailsRequested event,
     Emitter<MovieDetailsState> emit,
@@ -37,11 +41,12 @@ class MovieDetailsBloc extends Bloc<MovieDetailsEvent, MovieDetailsState> {
     final result = await _getMovieDetails(event.id);
     switch (result) {
       case Ok(:final value):
+        _lastLoaded = value.movie;
         emit(
           MovieDetailsState.loaded(value.movie, fromCache: value.fromCache),
         );
       case Err(:final failure):
-        emit(MovieDetailsState.failure(failure));
+        emit(MovieDetailsState.failure(failure, movie: _lastLoaded));
     }
   }
 }

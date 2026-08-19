@@ -116,6 +116,21 @@ void main() {
     expect(find.byKey(const Key('movie-details-stale-banner')), findsNothing);
   });
 
+  testWidgets('a failed retry keeps the movie that was already on screen', (
+    tester,
+  ) async {
+    // Cold-start deep link: no initialMovie to fall back on. The cached copy
+    // shown a moment ago must survive a retry that fails.
+    stub(
+      MovieDetailsState.failure(const Failure.unauthorized(), movie: tBlackAdam),
+    );
+
+    await pumpPage(tester);
+
+    expect(find.text(tBlackAdam.overview), findsOneWidget);
+    expect(find.textContaining("Couldn't refresh"), findsOneWidget);
+  });
+
   testWidgets('shows the optimistic movie while loading', (tester) async {
     stub(const MovieDetailsState.loading());
 
