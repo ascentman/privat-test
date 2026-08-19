@@ -2,21 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/router/app_routes.dart';
 import '../../features/movies/domain/entities/movie.dart';
 import '../../features/movies/presentation/bloc/movie_details/movie_details_bloc.dart';
 import '../../features/movies/presentation/bloc/movie_search/movie_search_bloc.dart';
 import '../../features/movies/presentation/pages/movie_details_page.dart';
 import '../../features/movies/presentation/pages/movie_search_page.dart';
 import '../di/injection.dart';
-
-/// Route locations, kept in one place so deep links and in-app navigation
-/// cannot drift apart.
-abstract final class AppRoutes {
-  static const String search = '/';
-  static const String movieDetails = '/movie/:id';
-
-  static String movie(int id) => '/movie/$id';
-}
 
 /// Matches a bare numeric location such as `/436270`.
 final RegExp _bareMovieId = RegExp(r'^/(\d+)/?$');

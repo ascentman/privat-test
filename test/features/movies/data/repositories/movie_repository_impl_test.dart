@@ -122,6 +122,20 @@ void main() {
       expect(result.valueOrNull?.fromCache, isTrue);
     });
 
+    test('survives a cache write that fails in an unforeseen way', () async {
+      when(
+        () => remote.searchMovies(any(), page: any(named: 'page')),
+      ).thenAnswer(
+        (_) async => const MovieSearchResponse(results: [tBlackAdamModel]),
+      );
+      // Not a CacheException: caching is best-effort whatever goes wrong.
+      when(() => local.cacheSearchResults(any(), any())).thenThrow(StateError('boom'));
+
+      final result = await repository.searchMovies('black adam');
+
+      expect(result.valueOrNull?.movies, [tBlackAdam]);
+    });
+
     test('reports a response that does not match the model', () async {
       // Deserialisation happens after Dio returns, so this is a plain
       // TypeError rather than a DioException.

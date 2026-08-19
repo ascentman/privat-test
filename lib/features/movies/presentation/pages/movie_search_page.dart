@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../domain/entities/movie.dart';
 import '../../domain/usecases/search_movies.dart';
 import '../bloc/movie_search/movie_search_bloc.dart';
@@ -124,7 +125,7 @@ class _ResultList extends StatelessWidget {
             movie: movie,
             // `extra` renders instantly; the details bloc still reloads by
             // id so the screen is identical when opened via a deep link.
-            onTap: () => context.push('/movie/${movie.id}', extra: movie),
+            onTap: () => context.push(AppRoutes.movie(movie.id), extra: movie),
           );
         },
       ),

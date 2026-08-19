@@ -90,8 +90,11 @@ class MovieRepositoryImpl implements MovieRepository {
   Future<void> _tryCache(Future<void> Function() write) async {
     try {
       await write();
-    } on CacheException {
+    } catch (_) {
       // Caching is an optimisation; losing it must not break the request.
+      // Deliberately broader than CacheException: with the catch-all below
+      // turning stray errors into failures, a narrower catch here would let a
+      // bad cache write sink an otherwise good response.
     }
   }
 
