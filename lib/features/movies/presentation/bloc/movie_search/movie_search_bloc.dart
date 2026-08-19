@@ -77,7 +77,7 @@ class MovieSearchBloc extends Bloc<MovieSearchEvent, MovieSearchState> {
       case Ok(:final value):
         emit(
           value.movies.isEmpty
-              ? MovieSearchState.empty(trimmed)
+              ? MovieSearchState.empty(trimmed, fromCache: value.fromCache)
               : MovieSearchState.loaded(
                   movies: value.movies,
                   fromCache: value.fromCache,

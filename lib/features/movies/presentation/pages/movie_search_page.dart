@@ -78,9 +78,12 @@ class _MovieSearchPageState extends State<MovieSearchPage> {
                 SearchLoading() => const Center(
                   child: CircularProgressIndicator(),
                 ),
-                SearchEmpty(:final query) => MessageView(
-                  icon: Icons.sentiment_dissatisfied_outlined,
-                  message: 'Nothing found for "$query".',
+                SearchEmpty(:final query, :final fromCache) => _WithCacheBanner(
+                  fromCache: fromCache,
+                  child: MessageView(
+                    icon: Icons.sentiment_dissatisfied_outlined,
+                    message: 'Nothing found for "$query".',
+                  ),
                 ),
                 SearchFailure(:final failure) => MessageView(
                   icon: Icons.cloud_off,
@@ -110,25 +113,40 @@ class _ResultList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return _WithCacheBanner(
+      fromCache: fromCache,
+      child: ListView.separated(
+        itemCount: movies.length,
+        separatorBuilder: (_, _) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final movie = movies[index];
+          return MovieListTile(
+            movie: movie,
+            // `extra` renders instantly; the details bloc still reloads by
+            // id so the screen is identical when opened via a deep link.
+            onTap: () => context.push('/movie/${movie.id}', extra: movie),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Puts the offline banner above [child] whenever what it shows came from the
+/// cache — results and "nothing found" alike.
+class _WithCacheBanner extends StatelessWidget {
+  const _WithCacheBanner({required this.fromCache, required this.child});
+
+  final bool fromCache;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!fromCache) {
+      return child;
+    }
     return Column(
-      children: [
-        if (fromCache) const _OfflineBanner(),
-        Expanded(
-          child: ListView.separated(
-            itemCount: movies.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final movie = movies[index];
-              return MovieListTile(
-                movie: movie,
-                // `extra` renders instantly; the details bloc still reloads by
-                // id so the screen is identical when opened via a deep link.
-                onTap: () => context.push('/movie/${movie.id}', extra: movie),
-              );
-            },
-          ),
-        ),
-      ],
+      children: [const _OfflineBanner(), Expanded(child: child)],
     );
   }
 }

@@ -71,6 +71,23 @@ void main() {
   );
 
   blocTest<MovieSearchBloc, MovieSearchState>(
+    'keeps the cached flag on an empty result',
+    setUp: () {
+      when(() => searchMovies(any())).thenAnswer(
+        (_) async =>
+            const Result.ok(MovieSearchResult(movies: [], fromCache: true)),
+      );
+    },
+    build: () => MovieSearchBloc(searchMovies),
+    act: (bloc) => bloc.add(const MovieSearchEvent.queryChanged('zzzz')),
+    wait: _afterDebounce,
+    expect: () => [
+      const MovieSearchState.loading(),
+      const MovieSearchState.empty('zzzz', fromCache: true),
+    ],
+  );
+
+  blocTest<MovieSearchBloc, MovieSearchState>(
     'emits failure when the search fails',
     setUp: () {
       when(

@@ -14,7 +14,14 @@ sealed class MovieSearchState with _$MovieSearchState {
   }) = SearchLoaded;
 
   /// The search succeeded but matched nothing.
-  const factory MovieSearchState.empty(String query) = SearchEmpty;
+  ///
+  /// [fromCache] matters here as much as it does for results: "TMDB has no
+  /// such film" and "you are offline and this is what we knew" are different
+  /// answers to the user.
+  const factory MovieSearchState.empty(
+    String query, {
+    @Default(false) bool fromCache,
+  }) = SearchEmpty;
 
   const factory MovieSearchState.failure(Failure failure) = SearchFailure;
 }
