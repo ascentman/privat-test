@@ -24,6 +24,23 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Deep link: privattest://movie/<id>
+                 Verify with:
+                 adb shell am start -a android.intent.action.VIEW \
+                   -d "privattest://movie/436270" com.example.privat_test -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="privattest"/>
+            </intent-filter>
+            <!-- Lets the Flutter engine forward incoming links to
+                 go_router instead of requiring a platform channel of our own.
+                 Read from the *activity's* metadata, so it has to live in
+                 here: on <application> the engine never sees it. -->
+            <meta-data
+                android:name="flutter_deeplinking_enabled"
+                android:value="true" />
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

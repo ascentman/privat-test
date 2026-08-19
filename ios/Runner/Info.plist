@@ -12,6 +12,24 @@
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<!-- Deep link: privattest://movie/<id>
+	     Verify with: xcrun simctl openurl booted "privattest://movie/436270" -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>privattest</string>
+			</array>
+		</dict>
+	</array>
+	<!-- Lets the Flutter engine forward incoming links to go_router. -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<true/>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
