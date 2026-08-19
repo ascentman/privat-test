@@ -12,9 +12,11 @@ set -uo pipefail
 payload=$(cat)
 
 # Fail closed rather than open: without jq the checks below cannot run, so a
-# payload that so much as mentions an env file is refused outright.
+# payload naming the key file or the directory holding it is refused outright.
+# Both forms matter — `cat assets/env/*` reaches the key without the string
+# `.env` appearing anywhere.
 if ! command -v jq >/dev/null 2>&1; then
-  if [[ "$payload" == *.env* ]]; then
+  if [[ "$payload" == *.env* || "$payload" == *assets/env* ]]; then
     printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Blocked by the project hook: jq is not installed, so the env-file guard cannot inspect this call."}}'
   fi
   exit 0
