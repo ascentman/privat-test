@@ -39,18 +39,34 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
-          # Surfaces the individual tool calls, so a run that reviews nothing can
-          # be diagnosed from the log instead of guessed at.
+          # A direct prompt rather than the code-review plugin: that skill farms
+          # the work out to async subagents and then waits for them, but this
+          # session ends before they report, so every run posted nothing.
+          prompt: |
+            Review pull request #${{ github.event.pull_request.number }} of
+            ${{ github.repository }} and post your findings as a PR comment.
+
+            Do the work yourself in this session. Do not delegate to subagents,
+            do not launch background tasks, and do not wait on anything — the
+            session ends as soon as you stop, so delegated work never reports.
+
+            Steps:
+            1. Read the diff: `gh pr diff ${{ github.event.pull_request.number }}`
+            2. Read any file you need more context on.
+            3. Post exactly one comment with:
+               `gh pr comment ${{ github.event.pull_request.number }} --body "..."`
+
+            Look for correctness bugs, missed edge cases, error handling gaps,
+            and simplifications. Anchor each finding to a file and line, and say
+            what would actually go wrong. Skip style nits the linter catches.
+            If you find nothing substantive, say so in one line — always post a
+            comment, so a green run is distinguishable from a broken one.
+          # Surfaces individual tool calls, so a run that reviews nothing can be
+          # diagnosed from the log instead of guessed at.
           show_full_output: true
-          # The agent performs the review by invoking a skill, and under the
-          # default permission mode that call is denied outright
-          # ("Error: Execute skill: code-review:code-review"), which is why every
-          # run so far finished in ~20s having posted nothing. Passing
-          # --allowedTools instead risks replacing the action's own tool list,
-          # including the MCP tools it posts comments with.
+          # Without this the agent's first tool call is denied outright
+          # ("Error: Execute skill: ..."). --allowedTools would risk replacing
+          # the action's own tool list, including its comment-posting tools.
           claude_args: '--permission-mode bypassPermissions'
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
