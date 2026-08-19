@@ -45,6 +45,13 @@ jobs:
           # Surfaces the individual tool calls, so a run that reviews nothing can
           # be diagnosed from the log instead of guessed at.
           show_full_output: true
+          # The agent performs the review by invoking a skill, and under the
+          # default permission mode that call is denied outright
+          # ("Error: Execute skill: code-review:code-review"), which is why every
+          # run so far finished in ~20s having posted nothing. Passing
+          # --allowedTools instead risks replacing the action's own tool list,
+          # including the MCP tools it posts comments with.
+          claude_args: '--permission-mode bypassPermissions'
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
