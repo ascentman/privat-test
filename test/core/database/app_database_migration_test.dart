@@ -70,10 +70,16 @@ void main() {
     addTearDown(upgraded.close);
     final dataSource = MovieLocalDataSourceImpl(upgraded);
 
+    final cached = await dataSource.getCachedSearch('black adam');
     expect(
-      await dataSource.getCachedSearch('black adam'),
+      cached?.movies,
       [tBlackAdamModel],
       reason: 'the rows were already there; only the marker table was missing',
+    );
+    expect(
+      cached?.totalResults,
+      1,
+      reason: 'v1 stored no total, so the row count is the best answer',
     );
     expect(await dataSource.getCachedSearch('never searched'), isNull);
   });

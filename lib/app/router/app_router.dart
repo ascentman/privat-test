@@ -65,9 +65,11 @@ String? _normalizeDeepLink(BuildContext context, GoRouterState state) {
   if (match == null) {
     return null;
   }
-  // tryParse, not parse: the pattern accepts any number of digits, so a
-  // garbled link like `privattest://99999999999999999999` overflows a 64-bit
-  // int and would otherwise throw out of the router's redirect.
+  // The ten-digit bound on the pattern is what keeps a garbled link like
+  // `privattest://99999999999999999999` away from here — such a path simply
+  // does not match, and falls through to the router's error page. tryParse
+  // still guards the parse itself, so a future widening of the pattern
+  // degrades into a miss rather than throwing out of a redirect.
   final id = int.tryParse(match.group(1)!);
   return id == null ? null : AppRoutes.movie(id);
 }

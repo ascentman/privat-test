@@ -8,15 +8,21 @@ import '../models/movie_model.dart';
 /// sqflite-backed cache of everything the app has already fetched.
 abstract class MovieLocalDataSource {
   /// Stores [movies] and remembers that they were the answer to [query],
-  /// preserving their order.
-  Future<void> cacheSearchResults(String query, List<MovieModel> movies);
+  /// preserving their order. [totalResults] is what the source said it had in
+  /// total, which exceeds `movies.length` when the answer was one page of
+  /// many.
+  Future<void> cacheSearchResults(
+    String query,
+    List<MovieModel> movies, {
+    int totalResults = 0,
+  });
 
   /// Previously cached results for [query], in their original order.
   ///
   /// `null` when the query has never been searched, as opposed to an empty
   /// list for a query that was searched and legitimately matched nothing —
   /// offline, those two deserve different answers.
-  Future<List<MovieModel>?> getCachedSearch(String query);
+  Future<CachedSearch?> getCachedSearch(String query);
 
   Future<void> cacheMovie(MovieModel movie);
 
@@ -33,8 +39,9 @@ class MovieLocalDataSourceImpl implements MovieLocalDataSource {
   @override
   Future<void> cacheSearchResults(
     String query,
-    List<MovieModel> movies,
-  ) async {
+    List<MovieModel> movies, {
+    int totalResults = 0,
+  }) async {
     try {
       await _db.transaction((txn) async {
         final now = DateTime.now();
@@ -60,6 +67,7 @@ class MovieLocalDataSourceImpl implements MovieLocalDataSource {
         await txn.insert(AppDatabase.searchedQueriesTable, {
           AppDatabase.columnQuery: query,
           AppDatabase.columnCachedAt: now.millisecondsSinceEpoch,
+          AppDatabase.columnTotalResults: totalResults,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
       });
     } on DatabaseException catch (error) {
@@ -68,11 +76,11 @@ class MovieLocalDataSourceImpl implements MovieLocalDataSource {
   }
 
   @override
-  Future<List<MovieModel>?> getCachedSearch(String query) async {
+  Future<CachedSearch?> getCachedSearch(String query) async {
     try {
       final searched = await _db.query(
         AppDatabase.searchedQueriesTable,
-        columns: [AppDatabase.columnQuery],
+        columns: [AppDatabase.columnTotalResults],
         where: '${AppDatabase.columnQuery} = ?',
         whereArgs: [query],
         limit: 1,
@@ -80,6 +88,8 @@ class MovieLocalDataSourceImpl implements MovieLocalDataSource {
       if (searched.isEmpty) {
         return null;
       }
+      final totalResults =
+          searched.first[AppDatabase.columnTotalResults] as int? ?? 0;
       final rows = await _db.rawQuery(
         '''
         SELECT m.* FROM ${AppDatabase.moviesTable} m
@@ -90,7 +100,10 @@ class MovieLocalDataSourceImpl implements MovieLocalDataSource {
         ''',
         [query],
       );
-      return rows.map(MovieModel.fromDb).toList();
+      return CachedSearch(
+        movies: rows.map(MovieModel.fromDb).toList(),
+        totalResults: totalResults,
+      );
     } on DatabaseException catch (error) {
       throw CacheException(error.toString());
     }
@@ -151,4 +164,14 @@ class MovieLocalDataSourceImpl implements MovieLocalDataSource {
       throw CacheException(error.toString());
     }
   }
+}
+
+/// What the cache knows about one past search: the stored movies, plus the
+/// total the source reported at the time, so an offline answer can still say
+/// it is only the first page of many.
+class CachedSearch {
+  const CachedSearch({required this.movies, required this.totalResults});
+
+  final List<MovieModel> movies;
+  final int totalResults;
 }

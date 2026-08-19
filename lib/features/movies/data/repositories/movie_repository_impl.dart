@@ -6,6 +6,7 @@ import '../../../../core/error/failure.dart';
 import '../../../../core/network/dio_failure_mapper.dart';
 import '../../../../core/utils/result.dart';
 import '../../domain/entities/movie.dart';
+import '../../domain/entities/movie_details_result.dart';
 import '../../domain/entities/movie_search_result.dart';
 import '../../domain/repositories/movie_repository.dart';
 import '../datasources/movie_local_data_source.dart';
@@ -27,7 +28,13 @@ class MovieRepositoryImpl implements MovieRepository {
     try {
       final response = await _remote.searchMovies(query);
       // A failing cache write must not fail an otherwise good response.
-      await _tryCache(() => _local.cacheSearchResults(cacheKey, response.results));
+      await _tryCache(
+        () => _local.cacheSearchResults(
+          cacheKey,
+          response.results,
+          totalResults: response.totalResults,
+        ),
+      );
       return Result.ok(
         MovieSearchResult(
           movies: _toEntities(response.results),
@@ -46,11 +53,11 @@ class MovieRepositoryImpl implements MovieRepository {
   }
 
   @override
-  Future<Result<Movie>> getMovieDetails(int id) async {
+  Future<Result<MovieDetailsResult>> getMovieDetails(int id) async {
     try {
       final model = await _remote.getMovieDetails(id);
       await _tryCache(() => _local.cacheMovie(model));
-      return Result.ok(model.toEntity());
+      return Result.ok(MovieDetailsResult(movie: model.toEntity()));
     } on DioException catch (error) {
       final failure = mapDioException(error);
       if (!isRecoverableFromCache(failure)) {
@@ -58,7 +65,9 @@ class MovieRepositoryImpl implements MovieRepository {
       }
       try {
         final cached = await _local.getCachedMovie(id);
-        return Result.ok(cached.toEntity());
+        return Result.ok(
+          MovieDetailsResult(movie: cached.toEntity(), fromCache: true),
+        );
       } on CacheException {
         return Result.err(failure);
       }
@@ -84,10 +93,11 @@ class MovieRepositoryImpl implements MovieRepository {
       }
       return Result.ok(
         MovieSearchResult(
-          movies: _toEntities(cached),
+          movies: _toEntities(cached.movies),
           fromCache: true,
-          // The cache holds exactly what was stored, nothing beyond it.
-          totalResults: cached.length,
+          // The total the source reported when this was stored, so an offline
+          // answer still admits it is only the first page of many.
+          totalResults: cached.totalResults,
         ),
       );
     } on CacheException {

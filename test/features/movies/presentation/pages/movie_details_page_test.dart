@@ -96,6 +96,26 @@ void main() {
     ).called(2); // once on open, once on retry
   });
 
+  testWidgets('says when the movie was served from the device cache', (
+    tester,
+  ) async {
+    stub(MovieDetailsState.loaded(tBlackAdam, fromCache: true));
+
+    // No initialMovie: this is the cold-start deep link case.
+    await pumpPage(tester);
+
+    expect(find.text(tBlackAdam.overview), findsOneWidget);
+    expect(find.textContaining('saved on this device'), findsOneWidget);
+  });
+
+  testWidgets('no notice when the movie came from the network', (tester) async {
+    stub(MovieDetailsState.loaded(tBlackAdam));
+
+    await pumpPage(tester);
+
+    expect(find.byKey(const Key('movie-details-stale-banner')), findsNothing);
+  });
+
   testWidgets('shows the optimistic movie while loading', (tester) async {
     stub(const MovieDetailsState.loading());
 

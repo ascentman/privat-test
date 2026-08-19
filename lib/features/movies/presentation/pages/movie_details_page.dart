@@ -24,10 +24,12 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
   @override
   void initState() {
     super.initState();
-    context.read<MovieDetailsBloc>().add(
-      MovieDetailsEvent.requested(widget.movieId),
-    );
+    _reload();
   }
+
+  void _reload() => context.read<MovieDetailsBloc>().add(
+    MovieDetailsEvent.requested(widget.movieId),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -55,9 +57,16 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
             DetailsFailure(:final failure) => _DetailsBody(
               movie: movie!,
               staleNotice: failure.userMessage,
-              onRetry: () => context.read<MovieDetailsBloc>().add(
-                MovieDetailsEvent.requested(widget.movieId),
-              ),
+              onRetry: _reload,
+            ),
+            // Loaded straight from sqflite because the network was unavailable
+            // — a cold-start deep link offline lands here, with no optimistic
+            // movie to fall back on, so this is the only thing that tells the
+            // user the rating and description may be out of date.
+            DetailsLoaded(fromCache: true) => _DetailsBody(
+              movie: movie!,
+              staleNotice: 'showing the copy saved on this device',
+              onRetry: _reload,
             ),
             _ => _DetailsBody(movie: movie!),
           },

@@ -22,6 +22,10 @@ void main() {
   late _MockSearchBloc searchBloc;
   late _MockDetailsBloc detailsBloc;
 
+  setUpAll(() {
+    registerFallbackValue(const MovieDetailsEvent.requested(1));
+  });
+
   setUp(() {
     searchBloc = _MockSearchBloc();
     detailsBloc = _MockDetailsBloc();
@@ -84,9 +88,12 @@ void main() {
     },
   );
 
-  testWidgets('an out-of-range numeric path does not throw', (tester) async {
-    // The bare-id pattern accepts any number of digits, so a garbled link can
-    // carry a value no 64-bit int can hold.
+  testWidgets('an implausibly long numeric path is not treated as an id', (
+    tester,
+  ) async {
+    // Too long to be a TMDB id, and on the web too long to survive int
+    // parsing intact. It must not reach the details screen, and must not
+    // throw out of the redirect on the way.
     final router = await pumpApp(tester);
 
     router.go('/99999999999999999999');
@@ -94,6 +101,16 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.byType(MovieDetailsPage), findsNothing);
+    verifyNever(() => detailsBloc.add(any()));
+  });
+
+  testWidgets('a ten-digit path is still accepted as an id', (tester) async {
+    final router = await pumpApp(tester);
+
+    router.go('/1234567890');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MovieDetailsPage), findsOneWidget);
   });
 
   testWidgets('a non-numeric movie id falls back to search', (tester) async {

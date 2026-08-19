@@ -52,7 +52,11 @@ void main() {
         (_) async => const MovieSearchResponse(results: [tBlackAdamModel]),
       );
       when(
-        () => local.cacheSearchResults(any(), any()),
+        () => local.cacheSearchResults(
+          any(),
+          any(),
+          totalResults: any(named: 'totalResults'),
+        ),
       ).thenAnswer((_) async {});
 
       final result = await repository.searchMovies('Black Adam');
@@ -60,7 +64,11 @@ void main() {
       expect(result.valueOrNull?.movies, [tBlackAdam]);
       expect(result.valueOrNull?.fromCache, isFalse);
       verify(
-        () => local.cacheSearchResults('black adam', [tBlackAdamModel]),
+        () => local.cacheSearchResults(
+          'black adam',
+          [tBlackAdamModel],
+          totalResults: any(named: 'totalResults'),
+        ),
       ).called(1);
     });
 
@@ -71,7 +79,11 @@ void main() {
         (_) async => const MovieSearchResponse(results: [tBlackAdamModel]),
       );
       when(
-        () => local.cacheSearchResults(any(), any()),
+        () => local.cacheSearchResults(
+          any(),
+          any(),
+          totalResults: any(named: 'totalResults'),
+        ),
       ).thenThrow(const CacheException('disk full'));
 
       final result = await repository.searchMovies('black adam');
@@ -85,7 +97,12 @@ void main() {
       ).thenThrow(_networkError());
       when(
         () => local.getCachedSearch('black adam'),
-      ).thenAnswer((_) async => [tBlackAdamModel, tShazamModel]);
+      ).thenAnswer(
+        (_) async => const CachedSearch(
+          movies: [tBlackAdamModel, tShazamModel],
+          totalResults: 340,
+        ),
+      );
 
       final result = await repository.searchMovies('Black Adam');
 
@@ -94,6 +111,11 @@ void main() {
         result.valueOrNull?.fromCache,
         isTrue,
         reason: 'the UI shows an offline banner based on this flag',
+      );
+      expect(
+        result.valueOrNull?.totalResults,
+        340,
+        reason: 'offline results still admit they are one page of many',
       );
     });
 
@@ -114,7 +136,9 @@ void main() {
         () => remote.searchMovies(any(), page: any(named: 'page')),
       ).thenThrow(_networkError());
       // Searched before, matched nothing — that is an answer, not ignorance.
-      when(() => local.getCachedSearch(any())).thenAnswer((_) async => []);
+      when(() => local.getCachedSearch(any())).thenAnswer(
+        (_) async => const CachedSearch(movies: [], totalResults: 0),
+      );
 
       final result = await repository.searchMovies('zzzqqq');
 
@@ -129,7 +153,13 @@ void main() {
         (_) async => const MovieSearchResponse(results: [tBlackAdamModel]),
       );
       // Not a CacheException: caching is best-effort whatever goes wrong.
-      when(() => local.cacheSearchResults(any(), any())).thenThrow(StateError('boom'));
+      when(
+        () => local.cacheSearchResults(
+          any(),
+          any(),
+          totalResults: any(named: 'totalResults'),
+        ),
+      ).thenThrow(StateError('boom'));
 
       final result = await repository.searchMovies('black adam');
 
@@ -171,7 +201,8 @@ void main() {
 
       final result = await repository.getMovieDetails(436270);
 
-      expect(result.valueOrNull, tBlackAdam);
+      expect(result.valueOrNull?.movie, tBlackAdam);
+      expect(result.valueOrNull?.fromCache, isFalse);
       verify(() => local.cacheMovie(tBlackAdamModel)).called(1);
     });
 
@@ -183,7 +214,12 @@ void main() {
 
       final result = await repository.getMovieDetails(436270);
 
-      expect(result.valueOrNull, tBlackAdam);
+      expect(result.valueOrNull?.movie, tBlackAdam);
+      expect(
+        result.valueOrNull?.fromCache,
+        isTrue,
+        reason: 'the details screen says so rather than looking current',
+      );
     });
 
     test('does not consult the cache for a 404', () async {

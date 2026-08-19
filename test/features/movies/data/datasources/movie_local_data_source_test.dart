@@ -32,7 +32,7 @@ void main() {
 
     final cached = await dataSource.getCachedSearch('black adam');
 
-    expect(cached, [tShazamModel, tBlackAdamModel]);
+    expect(cached?.movies, [tShazamModel, tBlackAdamModel]);
   });
 
   test('replaces the previous result set for the same query', () async {
@@ -44,15 +44,36 @@ void main() {
 
     final cached = await dataSource.getCachedSearch('black adam');
 
-    expect(cached, [tBlackAdamModel]);
+    expect(cached?.movies, [tBlackAdamModel]);
   });
 
   test('keeps result sets of different queries apart', () async {
     await dataSource.cacheSearchResults('black adam', [tBlackAdamModel]);
     await dataSource.cacheSearchResults('shazam', [tShazamModel]);
 
-    expect(await dataSource.getCachedSearch('black adam'), [tBlackAdamModel]);
-    expect(await dataSource.getCachedSearch('shazam'), [tShazamModel]);
+    expect((await dataSource.getCachedSearch('black adam'))?.movies, [
+      tBlackAdamModel,
+    ]);
+    expect((await dataSource.getCachedSearch('shazam'))?.movies, [
+      tShazamModel,
+    ]);
+  });
+
+  test('remembers how many matches the source reported', () async {
+    await dataSource.cacheSearchResults(
+      'batman',
+      [tBlackAdamModel],
+      totalResults: 340,
+    );
+
+    final cached = await dataSource.getCachedSearch('batman');
+
+    expect(cached?.movies, [tBlackAdamModel]);
+    expect(
+      cached?.totalResults,
+      340,
+      reason: 'offline, the list must still admit it is one page of many',
+    );
   });
 
   test('returns null for a query that was never searched', () async {
@@ -64,7 +85,7 @@ void main() {
     // one means "no such film", the other means "no idea".
     await dataSource.cacheSearchResults('zzzqqq', const []);
 
-    expect(await dataSource.getCachedSearch('zzzqqq'), isEmpty);
+    expect((await dataSource.getCachedSearch('zzzqqq'))?.movies, isEmpty);
   });
 
   test('re-caching a movie keeps it in the results of earlier queries', () async {
@@ -75,15 +96,21 @@ void main() {
 
     await dataSource.cacheMovie(tBlackAdamModel);
 
-    expect(await dataSource.getCachedSearch('batman'), [tBlackAdamModel]);
+    expect((await dataSource.getCachedSearch('batman'))?.movies, [
+      tBlackAdamModel,
+    ]);
   });
 
   test('caching one query does not disturb another that shares a movie', () async {
     await dataSource.cacheSearchResults('black', [tBlackAdamModel]);
     await dataSource.cacheSearchResults('adam', [tBlackAdamModel]);
 
-    expect(await dataSource.getCachedSearch('black'), [tBlackAdamModel]);
-    expect(await dataSource.getCachedSearch('adam'), [tBlackAdamModel]);
+    expect((await dataSource.getCachedSearch('black'))?.movies, [
+      tBlackAdamModel,
+    ]);
+    expect((await dataSource.getCachedSearch('adam'))?.movies, [
+      tBlackAdamModel,
+    ]);
   });
 
   test('re-caching a movie updates its stored fields', () async {

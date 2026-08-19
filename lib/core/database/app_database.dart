@@ -34,6 +34,10 @@ abstract final class AppDatabase {
   static const String columnMovieId = 'movie_id';
   static const String columnPosition = 'position';
 
+  /// Total matches the source reported for a query, which is larger than the
+  /// number of cached rows whenever the answer was truncated to one page.
+  static const String columnTotalResults = 'total_results';
+
   /// Opens (and creates on first launch) the cache database.
   ///
   /// [path] is overridable so tests can point at an in-memory database.
@@ -76,10 +80,13 @@ abstract final class AppDatabase {
           // Backfill from what v1 already cached. Without this every query an
           // existing install had stored would read as never searched, and its
           // offline results would sit in the database unreachable.
+          // v1 never recorded the source's total, so the best available
+          // answer is the number of rows it did store.
           await db.rawInsert(
             'INSERT OR IGNORE INTO $searchedQueriesTable '
-            '($columnQuery, $columnCachedAt) '
-            'SELECT DISTINCT $columnQuery, ? FROM $searchResultsTable',
+            '($columnQuery, $columnCachedAt, $columnTotalResults) '
+            'SELECT $columnQuery, ?, COUNT(*) FROM $searchResultsTable '
+            'GROUP BY $columnQuery',
             [DateTime.now().millisecondsSinceEpoch],
           );
         }
@@ -90,7 +97,8 @@ abstract final class AppDatabase {
   static Future<void> _createSearchedQueries(DatabaseExecutor db) => db.execute('''
     CREATE TABLE $searchedQueriesTable (
       $columnQuery TEXT PRIMARY KEY,
-      $columnCachedAt INTEGER NOT NULL
+      $columnCachedAt INTEGER NOT NULL,
+      $columnTotalResults INTEGER NOT NULL DEFAULT 0
     )
   ''');
 }
