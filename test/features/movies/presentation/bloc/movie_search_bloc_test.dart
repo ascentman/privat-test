@@ -168,6 +168,25 @@ void main() {
   );
 
   blocTest<MovieSearchBloc, MovieSearchState>(
+    'clearing calls off a query still waiting in the debounce window',
+    setUp: () {
+      when(() => searchMovies(any())).thenAnswer(
+        (_) async => Result.ok(MovieSearchResult(movies: [tBlackAdam])),
+      );
+    },
+    build: () => MovieSearchBloc(searchMovies),
+    act: (bloc) async {
+      bloc.add(const MovieSearchEvent.queryChanged('black adam'));
+      // Well inside the 300ms debounce: the search has not started yet.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      bloc.add(const MovieSearchEvent.cleared());
+    },
+    wait: const Duration(milliseconds: 600),
+    expect: () => [const MovieSearchState.initial()],
+    verify: (_) => verifyNever(() => searchMovies(any())),
+  );
+
+  blocTest<MovieSearchBloc, MovieSearchState>(
     'retries the last query',
     setUp: () {
       when(() => searchMovies(any())).thenAnswer(

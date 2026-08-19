@@ -32,11 +32,11 @@ GoRouter createRouter() => GoRouter(
     GoRoute(
       path: AppRoutes.movieDetails,
       redirect: (context, state) =>
-          int.tryParse(state.pathParameters['id'] ?? '') == null
+          AppRoutes.parseMovieId(state.pathParameters['id']) == null
           ? AppRoutes.search
           : null,
       builder: (context, state) {
-        final id = int.parse(state.pathParameters['id']!);
+        final id = AppRoutes.parseMovieId(state.pathParameters['id'])!;
         return BlocProvider(
           create: (_) => getIt<MovieDetailsBloc>(),
           child: MovieDetailsPage(
@@ -65,11 +65,6 @@ String? _normalizeDeepLink(BuildContext context, GoRouterState state) {
   if (match == null) {
     return null;
   }
-  // The ten-digit bound on the pattern is what keeps a garbled link like
-  // `privattest://99999999999999999999` away from here — such a path simply
-  // does not match, and falls through to the router's error page. tryParse
-  // still guards the parse itself, so a future widening of the pattern
-  // degrades into a miss rather than throwing out of a redirect.
-  final id = int.tryParse(match.group(1)!);
+  final id = AppRoutes.parseMovieId(match.group(1));
   return id == null ? null : AppRoutes.movie(id);
 }

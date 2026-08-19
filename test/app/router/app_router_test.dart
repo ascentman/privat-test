@@ -104,6 +104,22 @@ void main() {
     verifyNever(() => detailsBloc.add(any()));
   });
 
+  testWidgets('an oversized id on the explicit route falls back to search', (
+    tester,
+  ) async {
+    // The same bound has to hold here as for a rewritten bare path: on the web
+    // int.tryParse would round rather than reject, and the app would look up a
+    // different film.
+    final router = await pumpApp(tester);
+
+    router.go('/movie/99999999999999999999999');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MovieSearchPage), findsOneWidget);
+    expect(find.byType(MovieDetailsPage), findsNothing);
+    verifyNever(() => detailsBloc.add(any()));
+  });
+
   testWidgets('a ten-digit path is still accepted as an id', (tester) async {
     final router = await pumpApp(tester);
 
