@@ -16,6 +16,10 @@ sealed class Failure with _$Failure {
   const factory Failure.server({int? statusCode, String? message}) =
       ServerFailure;
 
+  /// The request was cancelled because a newer one superseded it. Not an
+  /// error the user caused and not a sign of being offline.
+  const factory Failure.cancelled() = CancelledFailure;
+
   /// Reading from or writing to the local sqflite cache failed.
   const factory Failure.cache([String? message]) = CacheFailure;
 
@@ -29,6 +33,7 @@ sealed class Failure with _$Failure {
   String get userMessage => switch (this) {
     NetworkFailure() =>
       'No internet connection and nothing cached for this request.',
+    CancelledFailure() => 'The request was cancelled.',
     ServerFailure(:final statusCode, :final message) =>
       message ?? 'The movie service failed (${statusCode ?? 'unknown'}).',
     CacheFailure(:final message) => message ?? 'Local cache is unavailable.',

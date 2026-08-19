@@ -13,8 +13,12 @@ Failure mapDioException(DioException exception) {
     case DioExceptionType.receiveTimeout:
     case DioExceptionType.transformTimeout:
     case DioExceptionType.connectionError:
-    case DioExceptionType.cancel:
       return const Failure.network();
+    // A cancelled request is not a connectivity problem: it is what a
+    // superseded request looks like. Folding it into NetworkFailure would make
+    // the cache-fallback path claim the device is offline.
+    case DioExceptionType.cancel:
+      return const Failure.cancelled();
     case DioExceptionType.badCertificate:
     case DioExceptionType.unknown:
       return const Failure.network();
@@ -24,8 +28,11 @@ Failure mapDioException(DioException exception) {
         return const Failure.notFound();
       }
       final data = exception.response?.data;
+      // Not a cast: a proxy or a future API revision can put anything here, and
+      // throwing inside the routine whose job is to make errors safe would
+      // defeat the point.
       final message = data is Map<String, dynamic>
-          ? data['status_message'] as String?
+          ? data['status_message']?.toString()
           : null;
       return Failure.server(statusCode: statusCode, message: message);
   }
@@ -34,5 +41,8 @@ Failure mapDioException(DioException exception) {
 /// Whether the cache should be consulted after this failure.
 bool isRecoverableFromCache(Failure failure) => switch (failure) {
   NetworkFailure() || ServerFailure() => true,
-  CacheFailure() || QueryTooShortFailure() || NotFoundFailure() => false,
+  CancelledFailure() ||
+  CacheFailure() ||
+  QueryTooShortFailure() ||
+  NotFoundFailure() => false,
 };
