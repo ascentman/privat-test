@@ -1,15 +1,39 @@
-# Movie search (TMDB)
+<h1 align="center">Movies</h1>
 
-Search films by title and open a details screen, with results cached offline
-and a deep link straight to a film. Task description: [`TZ.md`](TZ.md).
+<p align="center">
+  Search films by title, open one, and keep what you found — offline and one
+  deep link away.<br>
+  Flutter · Clean Architecture · BLoC · retrofit · sqflite
+</p>
 
-- Search from 2 characters, debounced, results as poster / title / description
-- Details screen: poster, title, description, rating
-- Results cached in sqflite and served when the network is unavailable — and
-  said to be cached, rather than passed off as current
-- Deep link `privattest://movie/<id>`, working from a cold start
+<p align="center">
+  <img src="docs/demo.gif" width="270" alt="Searching for Batman, scrolling through results and opening a film">
+</p>
 
-## Getting started
+<p align="center">
+  <img src="docs/search.png" width="250" alt="Search results">
+  &nbsp;
+  <img src="docs/details.png" width="250" alt="Film details">
+  &nbsp;
+  <img src="docs/offline.png" width="250" alt="Cached results shown offline">
+</p>
+
+<p align="center"><sub>Search · Details · The same search with the network off</sub></p>
+
+---
+
+## What it does
+
+- **Search from two characters**, debounced, as a table of poster, title and description
+- **Loads the rest as you scroll** — TMDB returns twenty at a time; the list keeps asking
+- **Details**: poster, title, year, rating, description — reached by tap or by deep link
+- **Caches every page in sqflite** and serves it when the network is gone, saying so
+  rather than passing stale data off as current
+- **Deep link** `privattest://movie/<id>`, working from a cold start
+
+Task description: [`TZ.md`](TZ.md).
+
+## Quick start
 
 Requires Flutter `>= 3.45.0` (developed on 3.47.0 / Dart 3.13).
 
@@ -20,8 +44,9 @@ dart run build_runner build --delete-conflicting-outputs
 flutter run
 ```
 
-Get a key at https://www.themoviedb.org/settings/api. Without it the app opens
-on a screen explaining that, rather than failing every request with a 401.
+Get a key at [themoviedb.org](https://www.themoviedb.org/settings/api). Without
+one the app opens on a screen explaining that, rather than failing every request
+with a 401.
 
 Generated sources (`*.freezed.dart`, `*.g.dart`, `injection.config.dart`) are
 git-ignored, so `build_runner` must run once after checkout.
@@ -62,10 +87,10 @@ lib/
     └── presentation/   blocs, pages, widgets
 ```
 
-**Caching.** `MovieRepositoryImpl` is remote-first: it calls TMDB, stores the
-response, and reads sqflite only when the call fails — then flags the results so
-the UI says they are cached. Queries are normalised to lower case so
-`Black Adam` and `black adam` share one entry.
+**Caching.** Remote-first: call TMDB, store the response, and read sqflite only
+when the call fails — then flag the results so the UI says they are cached.
+Queries are normalised to lower case so `Black Adam` and `black adam` share one
+entry.
 
 Three tables: `movies` stores each film once, `search_results` maps a query to
 its movie ids **and their order**, and `searched_queries` records that a query
@@ -75,19 +100,23 @@ indistinguishable offline from one never made. Movies are written with an
 implements REPLACE as DELETE + INSERT, and with foreign keys enabled that delete
 cascades, evicting the film from every cached search.
 
+**Paging.** Later pages append under the same query, so an offline search
+returns everything scrolled through. A later page is never answered from the
+cache: it returns everything it holds for a query, and appending that to what is
+on screen would show every row twice. Offline the footer says how much is
+missing instead of promising more.
+
 **Errors.** Data sources throw; repositories translate into a sealed `Failure`
 and return `Result<T>`. Which failures may be answered from cache is one
-decision in `isRecoverableFromCache`: network and server errors, yes; an
-invalid key, a failed TLS handshake, a cancelled request or an unexpected error,
-no — those must not be hidden behind stale data.
+decision in `isRecoverableFromCache`: network and server errors, yes; an invalid
+key, a failed TLS handshake, a cancelled request or an unexpected error, no —
+those must not be hidden behind stale data.
 
-**Search.** The events that replace the screen — typing, retry, clear — share
-one `restartable()` pipeline with the 300 ms debounce inside the handler, so
-clearing the field calls off a query still waiting to fire as well as one
-already in flight. Paging is separate and `droppable()`: scrolling fires it
-repeatedly, and the repeats should be ignored while a page is loading rather
-than cancelling and restarting it. A page that lands after the query changed is
-dropped by comparing the query it was fetched for against the one on screen.
+**Search events.** Typing, retry and clear share one `restartable()` pipeline
+with the 300 ms debounce inside the handler, so clearing the field calls off a
+query still waiting to fire as well as one already in flight. Paging is separate
+and `droppable()`: scrolling fires it repeatedly, and the repeats should be
+ignored while a page is loading rather than cancelling and restarting it.
 
 ## Packages beyond the required stack
 
@@ -112,17 +141,6 @@ and Dart 3 pattern matching gives the same exhaustiveness without the dependency
 `freezed_annotation` to exactly 3.1.0, and its class syntax is identical to
 stable 3.x.
 
-## Paging
-
-The list loads the next page as it nears the end, appending as it goes, and
-caches each page under the same query so an offline search returns everything
-that was scrolled through rather than just the first twenty.
-
-Offline it stops there and says so — "Offline — showing 20 of 173 matches" —
-because there is nowhere to fetch the rest from. A later page is never answered
-from the cache: the cache returns everything it holds for a query, and
-appending that to what is on screen would show each row twice.
-
 ## Tests
 
 ```bash
@@ -131,6 +149,6 @@ flutter test
 
 79 tests covering the use case's minimum-length rule, the repository's cache
 fallback and failure translation, the local data source against real sqlite
-(ordering, per-query isolation, the cascade-delete regression), the v1→v2
-migration and its backfill, both blocs including debounce, cancellation and paging, both
-screens, and deep-link route resolution.
+(ordering, per-query isolation, page appending, the cascade-delete regression),
+the v1→v2 migration and its backfill, both blocs including debounce,
+cancellation and paging, both screens, and deep-link route resolution.
