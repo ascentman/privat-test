@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Flutter injects this into the debug and profile manifests only, so a
+         release build without it cannot reach TMDB at all. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="privat_test"
         android:name="${applicationName}"
