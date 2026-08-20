@@ -12,4 +12,7 @@ sealed class MovieSearchEvent with _$MovieSearchEvent {
   /// [QueryChanged] so it bypasses the debounce: an explicit clear should
   /// reset the screen at once, not 300ms later.
   const factory MovieSearchEvent.cleared() = Cleared;
+
+  /// The list scrolled close enough to its end to want the next page.
+  const factory MovieSearchEvent.loadMoreRequested() = LoadMoreRequested;
 }

@@ -11,9 +11,13 @@ abstract class MovieLocalDataSource {
   /// preserving their order. [totalResults] is what the source said it had in
   /// total, which exceeds `movies.length` when the answer was one page of
   /// many.
+  ///
+  /// Page 1 replaces whatever was stored for the query; later pages append, so
+  /// the cache ends up holding every page the user actually scrolled through.
   Future<void> cacheSearchResults(
     String query,
     List<MovieModel> movies, {
+    int page = 1,
     int totalResults = 0,
   });
 
@@ -40,6 +44,7 @@ class MovieLocalDataSourceImpl implements MovieLocalDataSource {
   Future<void> cacheSearchResults(
     String query,
     List<MovieModel> movies, {
+    int page = 1,
     int totalResults = 0,
   }) async {
     try {
@@ -48,18 +53,31 @@ class MovieLocalDataSourceImpl implements MovieLocalDataSource {
         for (final movie in movies) {
           await _upsertMovie(txn, movie, cachedAt: now);
         }
-        // Replace the whole result set for this query so removed hits do not
-        // linger in the cache.
-        await txn.delete(
-          AppDatabase.searchResultsTable,
-          where: '${AppDatabase.columnQuery} = ?',
-          whereArgs: [query],
-        );
-        for (var position = 0; position < movies.length; position++) {
+        var offset = 0;
+        if (page <= 1) {
+          // A fresh search replaces the whole set, so hits that disappeared
+          // upstream do not linger.
+          await txn.delete(
+            AppDatabase.searchResultsTable,
+            where: '${AppDatabase.columnQuery} = ?',
+            whereArgs: [query],
+          );
+        } else {
+          // A later page continues where the stored ones stop, rather than
+          // trusting the page number: a re-run of page 2 must not leave a gap.
+          final rows = await txn.rawQuery(
+            'SELECT COALESCE(MAX(${AppDatabase.columnPosition}), -1) + 1 AS next '
+            'FROM ${AppDatabase.searchResultsTable} '
+            'WHERE ${AppDatabase.columnQuery} = ?',
+            [query],
+          );
+          offset = (rows.first['next'] as int?) ?? 0;
+        }
+        for (var i = 0; i < movies.length; i++) {
           await txn.insert(AppDatabase.searchResultsTable, {
             AppDatabase.columnQuery: query,
-            AppDatabase.columnMovieId: movies[position].id,
-            AppDatabase.columnPosition: position,
+            AppDatabase.columnMovieId: movies[i].id,
+            AppDatabase.columnPosition: offset + i,
           }, conflictAlgorithm: ConflictAlgorithm.replace);
         }
         // Recorded even for an empty result set: that is the only way a later

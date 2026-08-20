@@ -74,6 +74,37 @@ void main() {
     );
   });
 
+  test('appends a later page after the stored ones', () async {
+    await dataSource.cacheSearchResults('batman', [
+      tBlackAdamModel,
+    ], totalResults: 173);
+
+    await dataSource.cacheSearchResults(
+      'batman',
+      [tShazamModel],
+      page: 2,
+      totalResults: 173,
+    );
+
+    final cached = await dataSource.getCachedSearch('batman');
+
+    expect(cached?.movies, [
+      tBlackAdamModel,
+      tShazamModel,
+    ], reason: 'page 2 continues the list rather than replacing it');
+  });
+
+  test('a fresh first page still replaces everything stored', () async {
+    await dataSource.cacheSearchResults('batman', [tBlackAdamModel]);
+    await dataSource.cacheSearchResults('batman', [tShazamModel], page: 2);
+
+    await dataSource.cacheSearchResults('batman', [tShazamModel]);
+
+    expect((await dataSource.getCachedSearch('batman'))?.movies, [
+      tShazamModel,
+    ]);
+  });
+
   test('returns null for a query that was never searched', () async {
     expect(await dataSource.getCachedSearch('unseen'), isNull);
   });

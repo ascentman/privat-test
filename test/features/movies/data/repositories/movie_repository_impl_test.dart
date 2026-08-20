@@ -82,6 +82,7 @@ void main() {
         () => local.cacheSearchResults(
           any(),
           any(),
+          page: any(named: 'page'),
           totalResults: any(named: 'totalResults'),
         ),
       ).thenThrow(const CacheException('disk full'));
@@ -157,6 +158,7 @@ void main() {
         () => local.cacheSearchResults(
           any(),
           any(),
+          page: any(named: 'page'),
           totalResults: any(named: 'totalResults'),
         ),
       ).thenThrow(StateError('boom'));
@@ -175,6 +177,51 @@ void main() {
       final result = await repository.searchMovies('black adam');
 
       expect((result as Err).failure, isA<UnexpectedFailure>());
+    });
+
+    test('does not answer a later page from the cache', () async {
+      when(() => remote.searchMovies(any(), page: any(named: 'page')))
+          .thenThrow(_networkError());
+
+      final result = await repository.searchMovies('black adam', page: 2);
+
+      // The cache holds every page stored for the query; appending that to
+      // what is already on screen would show each row twice.
+      expect((result as Err).failure, const Failure.network());
+      verifyNever(() => local.getCachedSearch(any()));
+    });
+
+    test('appends a later page under the same cache key', () async {
+      when(() => remote.searchMovies(any(), page: any(named: 'page')))
+          .thenAnswer(
+            (_) async => const MovieSearchResponse(
+              page: 2,
+              totalPages: 9,
+              totalResults: 173,
+              results: [tShazamModel],
+            ),
+          );
+      when(
+        () => local.cacheSearchResults(
+          any(),
+          any(),
+          page: any(named: 'page'),
+          totalResults: any(named: 'totalResults'),
+        ),
+      ).thenAnswer((_) async {});
+
+      final result = await repository.searchMovies('Black Adam', page: 2);
+
+      expect(result.valueOrNull?.page, 2);
+      expect(result.valueOrNull?.hasMore, isTrue);
+      verify(
+        () => local.cacheSearchResults(
+          'black adam',
+          [tShazamModel],
+          page: 2,
+          totalResults: 173,
+        ),
+      ).called(1);
     });
 
     test('surfaces the network failure when the cache itself throws', () async {

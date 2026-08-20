@@ -110,11 +110,15 @@ class _MovieSearchPageState extends State<MovieSearchPage> {
                   :final movies,
                   :final fromCache,
                   :final totalResults,
+                  :final hasMore,
+                  :final isLoadingMore,
                 ) =>
                   _ResultList(
                     movies: movies,
                     fromCache: fromCache,
                     totalResults: totalResults,
+                    hasMore: hasMore,
+                    isLoadingMore: isLoadingMore,
                     topInset: topInset,
                   ),
               },
@@ -151,45 +155,72 @@ class _ResultList extends StatelessWidget {
     required this.movies,
     required this.fromCache,
     required this.totalResults,
+    required this.hasMore,
+    required this.isLoadingMore,
     required this.topInset,
   });
 
   final List<Movie> movies;
   final bool fromCache;
   final int totalResults;
+  final bool hasMore;
+  final bool isLoadingMore;
   final double topInset;
 
-  /// True when the source has more matches than this one page carries.
-  bool get _isTruncated => totalResults > movies.length;
+  /// Cached answers cannot grow, so a short one says how much is missing
+  /// rather than pretending more is on the way.
+  bool get _isTruncatedCache => fromCache && totalResults > movies.length;
+
+  bool get _hasFooter => hasMore || isLoadingMore || _isTruncatedCache;
 
   @override
   Widget build(BuildContext context) {
     // The banner rides in the list rather than above it, so the rows keep
-    // passing under the glass bar instead of starting below a fixed header.
+    // passing under the glass header instead of starting below a fixed one.
     final leading = fromCache ? 1 : 0;
-    final trailing = _isTruncated ? 1 : 0;
+    final trailing = _hasFooter ? 1 : 0;
 
-    return ListView.separated(
-      padding: EdgeInsets.only(top: topInset, bottom: 24),
-      itemCount: leading + movies.length + trailing,
-      separatorBuilder: (context, index) =>
-          index < leading ? const SizedBox.shrink() : const Divider(height: 1),
-      itemBuilder: (context, index) {
-        if (fromCache && index == 0) {
-          return const _OfflineBanner();
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        // Ask early enough that the next page usually lands before the user
+        // reaches the end. The bloc drops the repeats this fires.
+        if (hasMore &&
+            !isLoadingMore &&
+            notification.metrics.extentAfter < 800) {
+          context.read<MovieSearchBloc>().add(
+            const MovieSearchEvent.loadMoreRequested(),
+          );
         }
-        final movieIndex = index - leading;
-        if (movieIndex == movies.length) {
-          return _TruncationNotice(shown: movies.length, total: totalResults);
-        }
-        final movie = movies[movieIndex];
-        return MovieListTile(
-          movie: movie,
-          // `extra` renders instantly; the details bloc still reloads by id so
-          // the screen is identical when opened via a deep link.
-          onTap: () => context.push(AppRoutes.movie(movie.id), extra: movie),
-        );
+        return false;
       },
+      child: ListView.separated(
+        padding: EdgeInsets.only(top: topInset, bottom: 24),
+        itemCount: leading + movies.length + trailing,
+        separatorBuilder: (context, index) => index < leading
+            ? const SizedBox.shrink()
+            : const Divider(height: 1),
+        itemBuilder: (context, index) {
+          if (fromCache && index == 0) {
+            return const _OfflineBanner();
+          }
+          final movieIndex = index - leading;
+          if (movieIndex == movies.length) {
+            return _ListFooter(
+              shown: movies.length,
+              total: totalResults,
+              isLoadingMore: isLoadingMore,
+              cachedAndTruncated: _isTruncatedCache,
+            );
+          }
+          final movie = movies[movieIndex];
+          return MovieListTile(
+            movie: movie,
+            // `extra` renders instantly; the details bloc still reloads by id
+            // so the screen is identical when opened via a deep link.
+            onTap: () => context.push(AppRoutes.movie(movie.id), extra: movie),
+          );
+        },
+      ),
     );
   }
 }
@@ -226,23 +257,43 @@ class _OfflineBanner extends StatelessWidget {
   }
 }
 
-/// Tells the user the list is only the first page of what TMDB matched.
-class _TruncationNotice extends StatelessWidget {
-  const _TruncationNotice({required this.shown, required this.total});
+/// The row after the last result: a spinner while the next page loads, or —
+/// offline, where no next page is coming — how much of the answer is missing.
+class _ListFooter extends StatelessWidget {
+  const _ListFooter({
+    required this.shown,
+    required this.total,
+    required this.isLoadingMore,
+    required this.cachedAndTruncated,
+  });
 
   final int shown;
   final int total;
+  final bool isLoadingMore;
+  final bool cachedAndTruncated;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      child: Text(
-        'Showing the first $shown of $total matches.',
-        textAlign: TextAlign.center,
-        style: theme.textTheme.labelMedium?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
+    if (cachedAndTruncated) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        child: Text(
+          'Offline — showing $shown of $total matches.',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 24),
+      child: Center(
+        child: SizedBox(
+          width: 26,
+          height: 26,
+          child: CircularProgressIndicator(strokeWidth: 2.5),
         ),
       ),
     );

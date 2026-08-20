@@ -58,9 +58,12 @@ length bound described under **Deep links**.
   after every change. Retrofit clients need a module because their generated
   implementation comes from a factory constructor.
 - **BLoC**: one bloc per screen; events and states are freezed unions in
-  `part` files next to the bloc. Register **one** handler for the event
-  supertype with `restartable()` rather than one per event type — cancellation
-  does not cross pipelines, so separate handlers cannot call each other off.
+  `part` files next to the bloc. Events that **replace** what is on screen go
+  through one handler on the event supertype with `restartable()`, not one
+  handler per type — cancellation does not cross pipelines, so separate
+  handlers cannot call each other off. Events that **append** (paging) need
+  their own `droppable()` pipeline instead, and must check that what they
+  fetched still belongs on screen before emitting, since nothing cancels them.
   `restartable()` silences a superseded handler's emits but does not stop its
   body, so check `emit.isDone` after every `await` before touching state.
 - Lints are stricter than `flutter_lints` defaults: single quotes, trailing
