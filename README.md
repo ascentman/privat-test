@@ -35,9 +35,10 @@ Task description: [`TZ.md`](TZ.md).
 
 ## Quick start
 
-Requires Flutter `>= 3.45.0` (developed on 3.47.0 / Dart 3.13). Android and iOS
-only — the web, Windows and Linux targets were removed, since none of them is
-something this app is meant to run on.
+Requires Flutter `>= 3.45.0` (developed on 3.47.0 / Dart 3.13). Built and
+checked on Android and iOS; the web, Windows and Linux scaffolds were removed,
+since none of them is something this app is meant to run on. A macOS scaffold
+is still in the tree, unused — the screens are laid out for a handset.
 
 ```bash
 cp assets/env/app.env.example assets/env/app.env   # then paste your TMDB v3 key
