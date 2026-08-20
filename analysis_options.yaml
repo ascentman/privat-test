@@ -12,10 +12,10 @@ analyzer:
     - build/**
     - android/**
     - ios/**
-    - macos/**
     # These targets are gone, but `flutter analyze` rewrites this list on every
     # run and puts them back. Excluding directories that do not exist is inert,
     # and leaving them here avoids a diff appearing on every machine.
+    - macos/**
     - web/**
     - windows/**
     - linux/**
