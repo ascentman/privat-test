@@ -152,9 +152,8 @@ void main() {
   blocTest<MovieDetailsBloc, MovieDetailsState>(
     'reports a failure with no movie when nothing was ever loaded',
     setUp: () {
-      when(
-        () => getMovieDetails(any()),
-      ).thenAnswer((_) async => const Result.err(Failure.network()));
+      when(() => getMovieDetails(any()))
+          .thenAnswer((_) async => const Result.err(Failure.network()));
     },
     build: () => MovieDetailsBloc(getMovieDetails),
     act: (bloc) => bloc.add(MovieDetailsEvent.requested(tBlackAdam.id)),

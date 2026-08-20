@@ -19,17 +19,20 @@ void main() {
     useCase = SearchMovies(repository);
   });
 
-  test('rejects queries shorter than the minimum without hitting the repository', () async {
-    final result = await useCase('b');
+  test(
+    'rejects queries shorter than the minimum without hitting the repository',
+    () async {
+      final result = await useCase('b');
 
-    expect(
-      result,
-      const Result<MovieSearchResult>.err(
-        Failure.queryTooShort(SearchMovies.minQueryLength),
-      ),
-    );
-    verifyZeroInteractions(repository);
-  });
+      expect(
+        result,
+        const Result<MovieSearchResult>.err(
+          Failure.queryTooShort(SearchMovies.minQueryLength),
+        ),
+      );
+      verifyZeroInteractions(repository);
+    },
+  );
 
   test('treats a whitespace-padded short query as too short', () async {
     final result = await useCase('  b  ');

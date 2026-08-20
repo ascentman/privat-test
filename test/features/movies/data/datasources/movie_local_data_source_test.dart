@@ -60,11 +60,9 @@ void main() {
   });
 
   test('remembers how many matches the source reported', () async {
-    await dataSource.cacheSearchResults(
-      'batman',
-      [tBlackAdamModel],
-      totalResults: 340,
-    );
+    await dataSource.cacheSearchResults('batman', [
+      tBlackAdamModel,
+    ], totalResults: 340);
 
     final cached = await dataSource.getCachedSearch('batman');
 
@@ -101,17 +99,20 @@ void main() {
     ]);
   });
 
-  test('caching one query does not disturb another that shares a movie', () async {
-    await dataSource.cacheSearchResults('black', [tBlackAdamModel]);
-    await dataSource.cacheSearchResults('adam', [tBlackAdamModel]);
+  test(
+    'caching one query does not disturb another that shares a movie',
+    () async {
+      await dataSource.cacheSearchResults('black', [tBlackAdamModel]);
+      await dataSource.cacheSearchResults('adam', [tBlackAdamModel]);
 
-    expect((await dataSource.getCachedSearch('black'))?.movies, [
-      tBlackAdamModel,
-    ]);
-    expect((await dataSource.getCachedSearch('adam'))?.movies, [
-      tBlackAdamModel,
-    ]);
-  });
+      expect((await dataSource.getCachedSearch('black'))?.movies, [
+        tBlackAdamModel,
+      ]);
+      expect((await dataSource.getCachedSearch('adam'))?.movies, [
+        tBlackAdamModel,
+      ]);
+    },
+  );
 
   test('re-caching a movie updates its stored fields', () async {
     await dataSource.cacheMovie(tBlackAdamModel);
@@ -128,7 +129,10 @@ void main() {
   test('round-trips a single movie', () async {
     await dataSource.cacheMovie(tBlackAdamModel);
 
-    expect(await dataSource.getCachedMovie(tBlackAdamModel.id), tBlackAdamModel);
+    expect(
+      await dataSource.getCachedMovie(tBlackAdamModel.id),
+      tBlackAdamModel,
+    );
   });
 
   test('throws CacheMissException for an unknown movie', () async {

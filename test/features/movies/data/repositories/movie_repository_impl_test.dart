@@ -45,39 +45,39 @@ void main() {
   });
 
   group('searchMovies', () {
-    test('returns remote results and caches them under a normalised key', () async {
-      when(
-        () => remote.searchMovies(any(), page: any(named: 'page')),
-      ).thenAnswer(
-        (_) async => const MovieSearchResponse(results: [tBlackAdamModel]),
-      );
-      when(
-        () => local.cacheSearchResults(
-          any(),
-          any(),
-          totalResults: any(named: 'totalResults'),
-        ),
-      ).thenAnswer((_) async {});
+    test(
+      'returns remote results and caches them under a normalised key',
+      () async {
+        when(() => remote.searchMovies(any(), page: any(named: 'page')))
+            .thenAnswer(
+              (_) async =>
+                  const MovieSearchResponse(results: [tBlackAdamModel]),
+            );
+        when(
+          () => local.cacheSearchResults(
+            any(),
+            any(),
+            totalResults: any(named: 'totalResults'),
+          ),
+        ).thenAnswer((_) async {});
 
-      final result = await repository.searchMovies('Black Adam');
+        final result = await repository.searchMovies('Black Adam');
 
-      expect(result.valueOrNull?.movies, [tBlackAdam]);
-      expect(result.valueOrNull?.fromCache, isFalse);
-      verify(
-        () => local.cacheSearchResults(
-          'black adam',
-          [tBlackAdamModel],
-          totalResults: any(named: 'totalResults'),
-        ),
-      ).called(1);
-    });
+        expect(result.valueOrNull?.movies, [tBlackAdam]);
+        expect(result.valueOrNull?.fromCache, isFalse);
+        verify(
+          () => local.cacheSearchResults('black adam', [
+            tBlackAdamModel,
+          ], totalResults: any(named: 'totalResults')),
+        ).called(1);
+      },
+    );
 
     test('still returns results when caching them fails', () async {
-      when(
-        () => remote.searchMovies(any(), page: any(named: 'page')),
-      ).thenAnswer(
-        (_) async => const MovieSearchResponse(results: [tBlackAdamModel]),
-      );
+      when(() => remote.searchMovies(any(), page: any(named: 'page')))
+          .thenAnswer(
+            (_) async => const MovieSearchResponse(results: [tBlackAdamModel]),
+          );
       when(
         () => local.cacheSearchResults(
           any(),
@@ -92,12 +92,9 @@ void main() {
     });
 
     test('falls back to the cache when the network fails', () async {
-      when(
-        () => remote.searchMovies(any(), page: any(named: 'page')),
-      ).thenThrow(_networkError());
-      when(
-        () => local.getCachedSearch('black adam'),
-      ).thenAnswer(
+      when(() => remote.searchMovies(any(), page: any(named: 'page')))
+          .thenThrow(_networkError());
+      when(() => local.getCachedSearch('black adam')).thenAnswer(
         (_) async => const CachedSearch(
           movies: [tBlackAdamModel, tShazamModel],
           totalResults: 340,
@@ -119,39 +116,42 @@ void main() {
       );
     });
 
-    test('surfaces the network failure when the query was never cached', () async {
-      when(
-        () => remote.searchMovies(any(), page: any(named: 'page')),
-      ).thenThrow(_networkError());
-      when(() => local.getCachedSearch(any())).thenAnswer((_) async => null);
+    test(
+      'surfaces the network failure when the query was never cached',
+      () async {
+        when(() => remote.searchMovies(any(), page: any(named: 'page')))
+            .thenThrow(_networkError());
+        when(() => local.getCachedSearch(any())).thenAnswer((_) async => null);
 
-      final result = await repository.searchMovies('black adam');
+        final result = await repository.searchMovies('black adam');
 
-      expect(result, isA<Err<dynamic>>());
-      expect((result as Err).failure, const Failure.network());
-    });
+        expect(result, isA<Err<dynamic>>());
+        expect((result as Err).failure, const Failure.network());
+      },
+    );
 
-    test('serves a cached empty result rather than claiming to be offline', () async {
-      when(
-        () => remote.searchMovies(any(), page: any(named: 'page')),
-      ).thenThrow(_networkError());
-      // Searched before, matched nothing — that is an answer, not ignorance.
-      when(() => local.getCachedSearch(any())).thenAnswer(
-        (_) async => const CachedSearch(movies: [], totalResults: 0),
-      );
+    test(
+      'serves a cached empty result rather than claiming to be offline',
+      () async {
+        when(() => remote.searchMovies(any(), page: any(named: 'page')))
+            .thenThrow(_networkError());
+        // Searched before, matched nothing — that is an answer, not ignorance.
+        when(() => local.getCachedSearch(any())).thenAnswer(
+          (_) async => const CachedSearch(movies: [], totalResults: 0),
+        );
 
-      final result = await repository.searchMovies('zzzqqq');
+        final result = await repository.searchMovies('zzzqqq');
 
-      expect(result.valueOrNull?.movies, isEmpty);
-      expect(result.valueOrNull?.fromCache, isTrue);
-    });
+        expect(result.valueOrNull?.movies, isEmpty);
+        expect(result.valueOrNull?.fromCache, isTrue);
+      },
+    );
 
     test('survives a cache write that fails in an unforeseen way', () async {
-      when(
-        () => remote.searchMovies(any(), page: any(named: 'page')),
-      ).thenAnswer(
-        (_) async => const MovieSearchResponse(results: [tBlackAdamModel]),
-      );
+      when(() => remote.searchMovies(any(), page: any(named: 'page')))
+          .thenAnswer(
+            (_) async => const MovieSearchResponse(results: [tBlackAdamModel]),
+          );
       // Not a CacheException: caching is best-effort whatever goes wrong.
       when(
         () => local.cacheSearchResults(
@@ -169,9 +169,8 @@ void main() {
     test('reports a response that does not match the model', () async {
       // Deserialisation happens after Dio returns, so this is a plain
       // TypeError rather than a DioException.
-      when(
-        () => remote.searchMovies(any(), page: any(named: 'page')),
-      ).thenThrow(TypeError());
+      when(() => remote.searchMovies(any(), page: any(named: 'page')))
+          .thenThrow(TypeError());
 
       final result = await repository.searchMovies('black adam');
 
@@ -179,12 +178,10 @@ void main() {
     });
 
     test('surfaces the network failure when the cache itself throws', () async {
-      when(
-        () => remote.searchMovies(any(), page: any(named: 'page')),
-      ).thenThrow(_networkError());
-      when(
-        () => local.getCachedSearch(any()),
-      ).thenThrow(const CacheException('corrupt'));
+      when(() => remote.searchMovies(any(), page: any(named: 'page')))
+          .thenThrow(_networkError());
+      when(() => local.getCachedSearch(any()))
+          .thenThrow(const CacheException('corrupt'));
 
       final result = await repository.searchMovies('black adam');
 
@@ -194,9 +191,8 @@ void main() {
 
   group('getMovieDetails', () {
     test('returns and caches the remote movie', () async {
-      when(
-        () => remote.getMovieDetails(436270),
-      ).thenAnswer((_) async => tBlackAdamModel);
+      when(() => remote.getMovieDetails(436270))
+          .thenAnswer((_) async => tBlackAdamModel);
       when(() => local.cacheMovie(any())).thenAnswer((_) async {});
 
       final result = await repository.getMovieDetails(436270);
@@ -208,9 +204,8 @@ void main() {
 
     test('falls back to the cached movie when the network fails', () async {
       when(() => remote.getMovieDetails(436270)).thenThrow(_networkError());
-      when(
-        () => local.getCachedMovie(436270),
-      ).thenAnswer((_) async => tBlackAdamModel);
+      when(() => local.getCachedMovie(436270))
+          .thenAnswer((_) async => tBlackAdamModel);
 
       final result = await repository.getMovieDetails(436270);
 
@@ -242,9 +237,8 @@ void main() {
 
     test('surfaces the failure on a cache miss', () async {
       when(() => remote.getMovieDetails(436270)).thenThrow(_networkError());
-      when(
-        () => local.getCachedMovie(436270),
-      ).thenThrow(const CacheMissException());
+      when(() => local.getCachedMovie(436270))
+          .thenThrow(const CacheMissException());
 
       final result = await repository.getMovieDetails(436270);
 

@@ -166,7 +166,6 @@ class _PosterHeader extends StatelessWidget {
     // TMDB posters are 2:3. Capped so the title still lands above the fold on
     // a tall phone.
     final height = math.min(size.width * 1.5, size.height * 0.72);
-    final year = _releaseYear(movie.releaseDate);
 
     return SizedBox(
       width: size.width,
@@ -222,16 +221,6 @@ class _PosterHeader extends StatelessWidget {
                     letterSpacing: -0.8,
                   ),
                 ),
-                if (year != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    year,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.75),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -241,10 +230,9 @@ class _PosterHeader extends StatelessWidget {
   }
 }
 
-/// The pill row under the poster. Only the rating for now: the year already
-/// sits under the title, and genres — which the reference design shows here —
-/// come from the details endpoint, which neither the model nor the cache
-/// carries yet.
+/// The pill row under the poster: release year and rating. Genres — which the
+/// reference design also shows here — come from the details endpoint, which
+/// neither the model nor the cache carries yet.
 class _MetaChips extends StatelessWidget {
   const _MetaChips({required this.movie});
 
@@ -252,11 +240,13 @@ class _MetaChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final year = _releaseYear(movie.releaseDate);
     return Wrap(
       alignment: WrapAlignment.center,
       spacing: 10,
       runSpacing: 10,
       children: [
+        if (year != null) _Chip(child: Text(year)),
         _Chip(
           child: Row(
             mainAxisSize: MainAxisSize.min,

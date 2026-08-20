@@ -57,9 +57,9 @@ void main() {
   blocTest<MovieSearchBloc, MovieSearchState>(
     'emits empty when the search matches nothing',
     setUp: () {
-      when(() => searchMovies(any())).thenAnswer(
-        (_) async => const Result.ok(MovieSearchResult(movies: [])),
-      );
+      when(
+        () => searchMovies(any()),
+      ).thenAnswer((_) async => const Result.ok(MovieSearchResult(movies: [])));
     },
     build: () => MovieSearchBloc(searchMovies),
     act: (bloc) => bloc.add(const MovieSearchEvent.queryChanged('zzzz')),
@@ -90,9 +90,8 @@ void main() {
   blocTest<MovieSearchBloc, MovieSearchState>(
     'emits failure when the search fails',
     setUp: () {
-      when(
-        () => searchMovies(any()),
-      ).thenAnswer((_) async => const Result.err(Failure.network()));
+      when(() => searchMovies(any()))
+          .thenAnswer((_) async => const Result.err(Failure.network()));
     },
     build: () => MovieSearchBloc(searchMovies),
     act: (bloc) => bloc.add(const MovieSearchEvent.queryChanged('black adam')),

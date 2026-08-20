@@ -33,7 +33,9 @@ void main() {
     ),
   );
 
-  testWidgets('prompts for a longer query in the initial state', (tester) async {
+  testWidgets('prompts for a longer query in the initial state', (
+    tester,
+  ) async {
     whenListen(
       bloc,
       const Stream<MovieSearchState>.empty(),
@@ -166,9 +168,8 @@ void main() {
       'black adam',
     );
 
-    verify(
-      () => bloc.add(const MovieSearchEvent.queryChanged('black adam')),
-    ).called(1);
+    verify(() => bloc.add(const MovieSearchEvent.queryChanged('black adam')))
+        .called(1);
   });
 
   testWidgets('retry button dispatches a retry event', (tester) async {
