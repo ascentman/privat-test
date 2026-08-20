@@ -120,9 +120,10 @@ authority is dropped and `privattest://movie/436270` reaches the app as
 `/436270`. `app_router.dart` compensates with a redirect that rewrites a bare
 numeric path to `/movie/<id>`.
 
-Ids are bounded to ten digits. On the web `int` is a JS double, so `int.tryParse`
-does not reject an overlong digit string the way it does on the VM — it rounds,
-and the app would look up a different, possibly real, film.
+Ids are bounded to ten digits, which keeps the guard from depending on how a
+platform parses an overlong number: the VM rejects it, a JS double would round
+it to a different, possibly real, film. Keep the bound if web is ever added
+back.
 
 Keep the details screen loading by id: a cold-start deep link has no movie
 handed over by the list, which is why the screen must survive on what it fetches

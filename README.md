@@ -3,7 +3,7 @@
 <p align="center">
   Search films by title, open one, and keep what you found — offline and one
   deep link away.<br>
-  Flutter · Clean Architecture · BLoC · retrofit · sqflite
+  Android and iOS · Clean Architecture · BLoC · retrofit · sqflite
 </p>
 
 <p align="center">
@@ -35,7 +35,10 @@ Task description: [`TZ.md`](TZ.md).
 
 ## Quick start
 
-Requires Flutter `>= 3.45.0` (developed on 3.47.0 / Dart 3.13).
+Requires Flutter `>= 3.45.0` (developed on 3.47.0 / Dart 3.13). Android and iOS
+only — the web, Windows, Linux and macOS scaffolds were removed, since the
+screens are laid out for a handset and none of those is something this app is
+meant to run on.
 
 ```bash
 cp assets/env/app.env.example assets/env/app.env   # then paste your TMDB v3 key
@@ -68,9 +71,9 @@ state handed over by the list.
 Android builds the initial route from `Uri.getPath()` alone, dropping the URI
 authority, so the link above arrives as `/436270`. The router rewrites a bare
 numeric path to `/movie/<id>`, which makes both that form and
-`privattest:///movie/436270` land on the same screen on every platform. Ids are
-bounded to ten digits, because on the web `int` is a JS double and an overlong
-id would round to a different film rather than fail to parse.
+`privattest:///movie/436270` land on the same screen. Ids are bounded to ten
+digits — TMDB ids are far shorter, and the bound keeps the guard from depending
+on how a given platform parses an overlong number.
 
 ## Architecture
 

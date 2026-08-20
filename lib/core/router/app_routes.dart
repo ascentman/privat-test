@@ -16,11 +16,12 @@ abstract final class AppRoutes {
 
   /// Parses a movie id from a route, or `null` when it is not one.
   ///
-  /// The length bound is the guard that matters, and it has to apply to every
-  /// path that carries an id — the explicit `/movie/:id` route as much as a
-  /// rewritten bare one. On the web `int` is a JS double, so `int.tryParse`
-  /// does not reject an overlong digit string the way it does on the VM: it
-  /// rounds, and the app would then look up a different, possibly real, film.
+  /// The length bound applies to every path carrying an id — the explicit
+  /// `/movie/:id` route as much as a rewritten bare one. On the VM an overlong
+  /// digit string already fails to parse, so the bound is belt and braces
+  /// there; it stops mattering only as long as this stays off the web, where
+  /// `int` is a JS double and such a string rounds to a different, possibly
+  /// real, film instead of failing.
   static int? parseMovieId(String? raw) {
     if (raw == null || !_movieId.hasMatch(raw)) {
       return null;

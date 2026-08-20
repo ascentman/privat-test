@@ -12,14 +12,14 @@ analyzer:
     - build/**
     - android/**
     - ios/**
-    - web/**
-    - windows/**
-    - macos/**
-    - linux/**
     # Generated code is owned by build_runner, never hand-edited.
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "**/*.config.dart"
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
   errors:
     invalid_annotation_target: ignore
 include: package:flutter_lints/flutter.yaml
