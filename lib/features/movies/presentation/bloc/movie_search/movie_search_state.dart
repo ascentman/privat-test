@@ -11,6 +11,7 @@ sealed class MovieSearchState with _$MovieSearchState {
   const factory MovieSearchState.loaded({
     required List<Movie> movies,
     @Default(false) bool fromCache,
+
     /// Total matches reported by the source; see [MovieSearchResult].
     @Default(0) int totalResults,
   }) = SearchLoaded;

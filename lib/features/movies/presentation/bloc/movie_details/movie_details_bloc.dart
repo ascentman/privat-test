@@ -56,9 +56,7 @@ class MovieDetailsBloc extends Bloc<MovieDetailsEvent, MovieDetailsState> {
     switch (result) {
       case Ok(:final value):
         _lastLoaded = value.movie;
-        emit(
-          MovieDetailsState.loaded(value.movie, fromCache: value.fromCache),
-        );
+        emit(MovieDetailsState.loaded(value.movie, fromCache: value.fromCache));
       case Err(:final failure):
         emit(MovieDetailsState.failure(failure, movie: _lastLoaded));
     }

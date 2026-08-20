@@ -19,8 +19,13 @@ class AppConfig {
 
   static const String baseUrl = 'https://api.themoviedb.org/3';
 
-  /// `w500` is the width TMDB recommends for list/detail posters.
-  static const String imageBaseUrl = 'https://image.tmdb.org/t/p/w500';
+  static const String imageBaseUrl = 'https://image.tmdb.org/t/p';
+
+  /// TMDB serves posters at fixed widths. `w500` is plenty for a list
+  /// thumbnail; the details screen shows one full-bleed, where the extra
+  /// pixels of `w780` are visible.
+  static const String posterSizeList = 'w500';
+  static const String posterSizeDetail = 'w780';
 
   final String apiKey;
 
@@ -28,10 +33,10 @@ class AppConfig {
 
   /// Builds a full poster URL from the relative `poster_path` returned by the
   /// API, or `null` when the movie has no poster.
-  static String? posterUrl(String? posterPath) {
+  static String? posterUrl(String? posterPath, {String size = posterSizeList}) {
     if (posterPath == null || posterPath.isEmpty) {
       return null;
     }
-    return '$imageBaseUrl$posterPath';
+    return '$imageBaseUrl/$size$posterPath';
   }
 }

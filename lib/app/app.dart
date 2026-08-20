@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/config/app_config.dart';
+import '../core/theme/app_theme.dart';
 import '../features/movies/presentation/widgets/message_view.dart';
 import 'di/injection.dart';
 import 'router/app_router.dart';
@@ -18,16 +19,15 @@ class _MoviesAppState extends State<MoviesApp> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-      useMaterial3: true,
-    );
+    final theme = AppTheme.dark;
 
     // Fail loudly instead of letting every request come back as a 401.
     if (!getIt<AppConfig>().hasApiKey) {
       return MaterialApp(
         title: 'Movies',
         theme: theme,
+        darkTheme: theme,
+        themeMode: ThemeMode.dark,
         home: const Scaffold(
           body: MessageView(
             icon: Icons.key_off,
@@ -43,6 +43,8 @@ class _MoviesAppState extends State<MoviesApp> {
     return MaterialApp.router(
       title: 'Movies',
       theme: theme,
+      darkTheme: theme,
+      themeMode: ThemeMode.dark,
       routerConfig: _router,
     );
   }

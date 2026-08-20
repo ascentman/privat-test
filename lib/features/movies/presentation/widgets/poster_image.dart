@@ -13,6 +13,7 @@ class PosterImage extends StatelessWidget {
     required this.width,
     required this.height,
     this.borderRadius = 8,
+    this.size = AppConfig.posterSizeList,
     super.key,
   });
 
@@ -21,9 +22,12 @@ class PosterImage extends StatelessWidget {
   final double height;
   final double borderRadius;
 
+  /// Which TMDB width to request; see [AppConfig.posterSizeDetail].
+  final String size;
+
   @override
   Widget build(BuildContext context) {
-    final url = AppConfig.posterUrl(posterPath);
+    final url = AppConfig.posterUrl(posterPath, size: size);
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: SizedBox(
