@@ -94,7 +94,8 @@ abstract final class AppDatabase {
     );
   }
 
-  static Future<void> _createSearchedQueries(DatabaseExecutor db) => db.execute('''
+  static Future<void> _createSearchedQueries(DatabaseExecutor db) =>
+      db.execute('''
     CREATE TABLE $searchedQueriesTable (
       $columnQuery TEXT PRIMARY KEY,
       $columnCachedAt INTEGER NOT NULL,

@@ -81,9 +81,13 @@ decision in `isRecoverableFromCache`: network and server errors, yes; an
 invalid key, a failed TLS handshake, a cancelled request or an unexpected error,
 no — those must not be hidden behind stale data.
 
-**Search.** All events share one `restartable()` pipeline with the 300 ms
-debounce inside the handler, so clearing the field calls off a query still
-waiting to fire as well as one already in flight.
+**Search.** The events that replace the screen — typing, retry, clear — share
+one `restartable()` pipeline with the 300 ms debounce inside the handler, so
+clearing the field calls off a query still waiting to fire as well as one
+already in flight. Paging is separate and `droppable()`: scrolling fires it
+repeatedly, and the repeats should be ignored while a page is loading rather
+than cancelling and restarting it. A page that lands after the query changed is
+dropped by comparing the query it was fetched for against the one on screen.
 
 ## Packages beyond the required stack
 
@@ -96,7 +100,7 @@ The task asks that additional frameworks be justified. Required by the spec:
 | `get_it` + `injectable` | Wires the layers so `domain` never reaches for a concrete implementation; annotations keep the graph in one generated file |
 | `go_router` | Declarative routes and built-in platform deep-link handling, so no bespoke platform channel |
 | `flutter_dotenv` | Keeps the TMDB key out of source control |
-| `bloc_concurrency` | `restartable()` — a newer query cancels the in-flight one |
+| `bloc_concurrency` | `restartable()` so a newer query cancels the in-flight one, `droppable()` so scrolling does not fire the same page twice |
 | `cached_network_image` | Disk-caches posters, so re-scrolling and offline views don't refetch |
 | `mocktail` + `bloc_test` + `sqflite_common_ffi` | Test doubles, bloc assertions, and a real in-memory sqlite for data-source tests |
 
@@ -108,11 +112,16 @@ and Dart 3 pattern matching gives the same exhaustiveness without the dependency
 `freezed_annotation` to exactly 3.1.0, and its class syntax is identical to
 stable 3.x.
 
-## Scope
+## Paging
 
-Search returns TMDB's first page. Paging is not in the task, so rather than
-build it, the list says when it is showing part of the answer
-("Showing the first 20 of 340 matches") instead of silently truncating.
+The list loads the next page as it nears the end, appending as it goes, and
+caches each page under the same query so an offline search returns everything
+that was scrolled through rather than just the first twenty.
+
+Offline it stops there and says so — "Offline — showing 20 of 173 matches" —
+because there is nowhere to fetch the rest from. A later page is never answered
+from the cache: the cache returns everything it holds for a query, and
+appending that to what is on screen would show each row twice.
 
 ## Tests
 
@@ -120,8 +129,8 @@ build it, the list says when it is showing part of the answer
 flutter test
 ```
 
-71 tests covering the use case's minimum-length rule, the repository's cache
+79 tests covering the use case's minimum-length rule, the repository's cache
 fallback and failure translation, the local data source against real sqlite
 (ordering, per-query isolation, the cascade-delete regression), the v1→v2
-migration and its backfill, both blocs including debounce and cancellation, both
+migration and its backfill, both blocs including debounce, cancellation and paging, both
 screens, and deep-link route resolution.

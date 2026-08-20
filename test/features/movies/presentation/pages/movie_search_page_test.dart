@@ -33,7 +33,9 @@ void main() {
     ),
   );
 
-  testWidgets('prompts for a longer query in the initial state', (tester) async {
+  testWidgets('prompts for a longer query in the initial state', (
+    tester,
+  ) async {
     whenListen(
       bloc,
       const Stream<MovieSearchState>.empty(),
@@ -49,7 +51,10 @@ void main() {
     whenListen(
       bloc,
       const Stream<MovieSearchState>.empty(),
-      initialState: MovieSearchState.loaded(movies: [tBlackAdam, tShazam]),
+      initialState: MovieSearchState.loaded(
+        movies: [tBlackAdam, tShazam],
+        query: 'batman',
+      ),
     );
 
     await pumpPage(tester);
@@ -65,6 +70,7 @@ void main() {
       const Stream<MovieSearchState>.empty(),
       initialState: MovieSearchState.loaded(
         movies: [tBlackAdam],
+        query: 'batman',
         fromCache: true,
       ),
     );
@@ -108,7 +114,10 @@ void main() {
     whenListen(
       bloc,
       const Stream<MovieSearchState>.empty(),
-      initialState: MovieSearchState.loaded(movies: [tBlackAdam]),
+      initialState: MovieSearchState.loaded(
+        movies: [tBlackAdam],
+        query: 'batman',
+      ),
     );
 
     await pumpPage(tester);
@@ -119,7 +128,7 @@ void main() {
     verify(() => bloc.add(const MovieSearchEvent.cleared())).called(1);
   });
 
-  testWidgets('says so when the list is only the first page of matches', (
+  testWidgets('says how much is missing when a cached answer is partial', (
     tester,
   ) async {
     whenListen(
@@ -127,13 +136,15 @@ void main() {
       const Stream<MovieSearchState>.empty(),
       initialState: MovieSearchState.loaded(
         movies: [tBlackAdam, tShazam],
+        query: 'batman',
+        fromCache: true,
         totalResults: 340,
       ),
     );
 
     await pumpPage(tester);
 
-    expect(find.textContaining('first 2 of 340'), findsOneWidget);
+    expect(find.textContaining('showing 2 of 340'), findsOneWidget);
   });
 
   testWidgets('no truncation notice when the page holds every match', (
@@ -144,13 +155,14 @@ void main() {
       const Stream<MovieSearchState>.empty(),
       initialState: MovieSearchState.loaded(
         movies: [tBlackAdam, tShazam],
+        query: 'batman',
         totalResults: 2,
       ),
     );
 
     await pumpPage(tester);
 
-    expect(find.textContaining('Showing the first'), findsNothing);
+    expect(find.textContaining('showing'), findsNothing);
   });
 
   testWidgets('typing dispatches a query event', (tester) async {
@@ -166,9 +178,8 @@ void main() {
       'black adam',
     );
 
-    verify(
-      () => bloc.add(const MovieSearchEvent.queryChanged('black adam')),
-    ).called(1);
+    verify(() => bloc.add(const MovieSearchEvent.queryChanged('black adam')))
+        .called(1);
   });
 
   testWidgets('retry button dispatches a retry event', (tester) async {

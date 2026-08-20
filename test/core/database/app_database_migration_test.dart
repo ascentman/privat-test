@@ -56,31 +56,35 @@ void main() {
 
   tearDown(() => tempDir.deleteSync(recursive: true));
 
-  test('upgrading from v1 keeps previously cached searches reachable', () async {
-    final v1 = await _openV1(dbPath);
-    await v1.insert(AppDatabase.moviesTable, tBlackAdamModel.toDb());
-    await v1.insert(AppDatabase.searchResultsTable, {
-      AppDatabase.columnQuery: 'black adam',
-      AppDatabase.columnMovieId: tBlackAdamModel.id,
-      AppDatabase.columnPosition: 0,
-    });
-    await v1.close();
+  test(
+    'upgrading from v1 keeps previously cached searches reachable',
+    () async {
+      final v1 = await _openV1(dbPath);
+      await v1.insert(AppDatabase.moviesTable, tBlackAdamModel.toDb());
+      await v1.insert(AppDatabase.searchResultsTable, {
+        AppDatabase.columnQuery: 'black adam',
+        AppDatabase.columnMovieId: tBlackAdamModel.id,
+        AppDatabase.columnPosition: 0,
+      });
+      await v1.close();
 
-    final upgraded = await AppDatabase.open(path: dbPath);
-    addTearDown(upgraded.close);
-    final dataSource = MovieLocalDataSourceImpl(upgraded);
+      final upgraded = await AppDatabase.open(path: dbPath);
+      addTearDown(upgraded.close);
+      final dataSource = MovieLocalDataSourceImpl(upgraded);
 
-    final cached = await dataSource.getCachedSearch('black adam');
-    expect(
-      cached?.movies,
-      [tBlackAdamModel],
-      reason: 'the rows were already there; only the marker table was missing',
-    );
-    expect(
-      cached?.totalResults,
-      1,
-      reason: 'v1 stored no total, so the row count is the best answer',
-    );
-    expect(await dataSource.getCachedSearch('never searched'), isNull);
-  });
+      final cached = await dataSource.getCachedSearch('black adam');
+      expect(
+        cached?.movies,
+        [tBlackAdamModel],
+        reason:
+            'the rows were already there; only the marker table was missing',
+      );
+      expect(
+        cached?.totalResults,
+        1,
+        reason: 'v1 stored no total, so the row count is the best answer',
+      );
+      expect(await dataSource.getCachedSearch('never searched'), isNull);
+    },
+  );
 }

@@ -17,6 +17,10 @@ const Duration _afterDebounce = Duration(milliseconds: 400);
 void main() {
   late _MockSearchMovies searchMovies;
 
+  setUpAll(() {
+    registerFallbackValue((query: '', page: 1));
+  });
+
   setUp(() {
     searchMovies = _MockSearchMovies();
   });
@@ -33,7 +37,7 @@ void main() {
     wait: _afterDebounce,
     expect: () => [
       const MovieSearchState.loading(),
-      MovieSearchState.loaded(movies: [tBlackAdam]),
+      MovieSearchState.loaded(movies: [tBlackAdam], query: 'black adam'),
     ],
   );
 
@@ -50,16 +54,20 @@ void main() {
     wait: _afterDebounce,
     expect: () => [
       const MovieSearchState.loading(),
-      MovieSearchState.loaded(movies: [tBlackAdam], fromCache: true),
+      MovieSearchState.loaded(
+        movies: [tBlackAdam],
+        query: 'black adam',
+        fromCache: true,
+      ),
     ],
   );
 
   blocTest<MovieSearchBloc, MovieSearchState>(
     'emits empty when the search matches nothing',
     setUp: () {
-      when(() => searchMovies(any())).thenAnswer(
-        (_) async => const Result.ok(MovieSearchResult(movies: [])),
-      );
+      when(
+        () => searchMovies(any()),
+      ).thenAnswer((_) async => const Result.ok(MovieSearchResult(movies: [])));
     },
     build: () => MovieSearchBloc(searchMovies),
     act: (bloc) => bloc.add(const MovieSearchEvent.queryChanged('zzzz')),
@@ -90,9 +98,8 @@ void main() {
   blocTest<MovieSearchBloc, MovieSearchState>(
     'emits failure when the search fails',
     setUp: () {
-      when(
-        () => searchMovies(any()),
-      ).thenAnswer((_) async => const Result.err(Failure.network()));
+      when(() => searchMovies(any()))
+          .thenAnswer((_) async => const Result.err(Failure.network()));
     },
     build: () => MovieSearchBloc(searchMovies),
     act: (bloc) => bloc.add(const MovieSearchEvent.queryChanged('black adam')),
@@ -128,12 +135,12 @@ void main() {
     wait: _afterDebounce,
     expect: () => [
       const MovieSearchState.loading(),
-      MovieSearchState.loaded(movies: [tBlackAdam]),
+      MovieSearchState.loaded(movies: [tBlackAdam], query: 'black adam'),
     ],
     verify: (_) {
-      verify(() => searchMovies('black adam')).called(1);
-      verifyNever(() => searchMovies('bl'));
-      verifyNever(() => searchMovies('bla'));
+      verify(() => searchMovies((query: 'black adam', page: 1))).called(1);
+      verifyNever(() => searchMovies((query: 'bl', page: 1)));
+      verifyNever(() => searchMovies((query: 'bla', page: 1)));
     },
   );
 
@@ -187,6 +194,92 @@ void main() {
   );
 
   blocTest<MovieSearchBloc, MovieSearchState>(
+    'appends the next page and tracks where it got to',
+    setUp: () {
+      when(() => searchMovies(any())).thenAnswer((invocation) async {
+        final params = invocation.positionalArguments.first as SearchQuery;
+        return Result.ok(
+          MovieSearchResult(
+            movies: params.page == 1 ? [tBlackAdam] : [tShazam],
+            page: params.page,
+            totalPages: 3,
+            totalResults: 42,
+          ),
+        );
+      });
+    },
+    build: () => MovieSearchBloc(searchMovies),
+    act: (bloc) async {
+      bloc.add(const MovieSearchEvent.queryChanged('batman'));
+      await Future<void>.delayed(_afterDebounce);
+      bloc.add(const MovieSearchEvent.loadMoreRequested());
+    },
+    wait: _afterDebounce,
+    verify: (bloc) {
+      final state = bloc.state as SearchLoaded;
+      expect(state.movies, [tBlackAdam, tShazam]);
+      expect(state.page, 2);
+      expect(state.hasMore, isTrue, reason: '3 pages, two fetched');
+      expect(state.isLoadingMore, isFalse);
+    },
+  );
+
+  blocTest<MovieSearchBloc, MovieSearchState>(
+    'ignores a paging request once the last page is in',
+    setUp: () {
+      when(() => searchMovies(any())).thenAnswer(
+        (_) async =>
+            Result.ok(MovieSearchResult(movies: [tBlackAdam], totalPages: 1)),
+      );
+    },
+    build: () => MovieSearchBloc(searchMovies),
+    act: (bloc) async {
+      bloc.add(const MovieSearchEvent.queryChanged('batman'));
+      await Future<void>.delayed(_afterDebounce);
+      bloc.add(const MovieSearchEvent.loadMoreRequested());
+    },
+    wait: _afterDebounce,
+    verify: (_) => verify(() => searchMovies(any())).called(1),
+  );
+
+  blocTest<MovieSearchBloc, MovieSearchState>(
+    'drops a page that lands after the query changed',
+    setUp: () {
+      when(() => searchMovies(any())).thenAnswer((invocation) async {
+        final params = invocation.positionalArguments.first as SearchQuery;
+        if (params.page == 2) {
+          // Slow enough that the next query overtakes it.
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+          return Result.ok(MovieSearchResult(movies: [tShazam], page: 2));
+        }
+        return Result.ok(
+          MovieSearchResult(movies: [tBlackAdam], page: 1, totalPages: 5),
+        );
+      });
+    },
+    build: () => MovieSearchBloc(searchMovies),
+    act: (bloc) async {
+      bloc.add(const MovieSearchEvent.queryChanged('batman'));
+      await Future<void>.delayed(_afterDebounce);
+      bloc.add(const MovieSearchEvent.loadMoreRequested());
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      bloc.add(const MovieSearchEvent.queryChanged('superman'));
+    },
+    wait: const Duration(milliseconds: 900),
+    verify: (bloc) {
+      final state = bloc.state as SearchLoaded;
+      expect(
+        state.query,
+        'superman',
+        reason: 'the newer query owns the screen',
+      );
+      expect(state.movies, [
+        tBlackAdam,
+      ], reason: "page 2 of 'batman' must not be appended to 'superman'");
+    },
+  );
+
+  blocTest<MovieSearchBloc, MovieSearchState>(
     'retries the last query',
     setUp: () {
       when(() => searchMovies(any())).thenAnswer(
@@ -200,6 +293,7 @@ void main() {
       bloc.add(const MovieSearchEvent.retried());
     },
     wait: _afterDebounce,
-    verify: (_) => verify(() => searchMovies('black adam')).called(2),
+    verify: (_) =>
+        verify(() => searchMovies((query: 'black adam', page: 1))).called(2),
   );
 }

@@ -66,27 +66,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(MovieDetailsPage), findsOneWidget);
-    verify(
-      () => detailsBloc.add(const MovieDetailsEvent.requested(436270)),
-    ).called(1);
+    verify(() => detailsBloc.add(const MovieDetailsEvent.requested(436270)))
+        .called(1);
   });
 
-  testWidgets(
-    'a bare numeric path opens the details screen',
-    (tester) async {
-      // Android builds the initial route from Uri.getPath() alone, so
-      // `privattest://movie/436270` reaches the app as `/436270`.
-      final router = await pumpApp(tester);
+  testWidgets('a bare numeric path opens the details screen', (tester) async {
+    // Android builds the initial route from Uri.getPath() alone, so
+    // `privattest://movie/436270` reaches the app as `/436270`.
+    final router = await pumpApp(tester);
 
-      router.go('/436270');
-      await tester.pumpAndSettle();
+    router.go('/436270');
+    await tester.pumpAndSettle();
 
-      expect(find.byType(MovieDetailsPage), findsOneWidget);
-      verify(
-        () => detailsBloc.add(const MovieDetailsEvent.requested(436270)),
-      ).called(1);
-    },
-  );
+    expect(find.byType(MovieDetailsPage), findsOneWidget);
+    verify(() => detailsBloc.add(const MovieDetailsEvent.requested(436270)))
+        .called(1);
+  });
 
   testWidgets('an implausibly long numeric path is not treated as an id', (
     tester,

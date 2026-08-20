@@ -50,9 +50,8 @@ void main() {
 
     await pumpPage(tester);
 
-    verify(
-      () => bloc.add(MovieDetailsEvent.requested(tBlackAdam.id)),
-    ).called(1);
+    verify(() => bloc.add(MovieDetailsEvent.requested(tBlackAdam.id)))
+        .called(1);
   });
 
   testWidgets('renders the movie with its rating', (tester) async {
@@ -61,18 +60,38 @@ void main() {
     await pumpPage(tester);
 
     expect(find.text(tBlackAdam.title), findsWidgets);
-    expect(find.text(tBlackAdam.voteAverage.toStringAsFixed(1)), findsOneWidget);
+    expect(
+      find.text(tBlackAdam.voteAverage.toStringAsFixed(1)),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('shows the error view when the load failed with nothing to show', (
+  testWidgets('shows the release year once, as a chip beside the rating', (
     tester,
   ) async {
-    stub(const MovieDetailsState.failure(Failure.network()));
+    stub(MovieDetailsState.loaded(tBlackAdam));
 
     await pumpPage(tester);
 
-    expect(find.byType(MessageView), findsOneWidget);
+    // tBlackAdam released 2022-10-19. Exactly one occurrence: the year used to
+    // sit under the title as well, which read as a duplicate.
+    expect(find.text('2022'), findsOneWidget);
+    expect(
+      find.text(tBlackAdam.voteAverage.toStringAsFixed(1)),
+      findsOneWidget,
+    );
   });
+
+  testWidgets(
+    'shows the error view when the load failed with nothing to show',
+    (tester) async {
+      stub(const MovieDetailsState.failure(Failure.network()));
+
+      await pumpPage(tester);
+
+      expect(find.byType(MessageView), findsOneWidget);
+    },
+  );
 
   testWidgets('warns that data is stale when a refresh fails after the list '
       'already supplied a movie', (tester) async {
@@ -91,9 +110,8 @@ void main() {
     await pumpPage(tester, initialMovie: tBlackAdam);
     await tester.tap(find.text('Retry'));
 
-    verify(
-      () => bloc.add(MovieDetailsEvent.requested(tBlackAdam.id)),
-    ).called(2); // once on open, once on retry
+    verify(() => bloc.add(MovieDetailsEvent.requested(tBlackAdam.id)))
+        .called(2); // once on open, once on retry
   });
 
   testWidgets('says when the movie was served from the device cache', (
@@ -122,7 +140,10 @@ void main() {
     // Cold-start deep link: no initialMovie to fall back on. The cached copy
     // shown a moment ago must survive a retry that fails.
     stub(
-      MovieDetailsState.failure(const Failure.unauthorized(), movie: tBlackAdam),
+      MovieDetailsState.failure(
+        const Failure.unauthorized(),
+        movie: tBlackAdam,
+      ),
     );
 
     await pumpPage(tester);

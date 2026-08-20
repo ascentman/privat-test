@@ -23,15 +23,19 @@ class MovieRepositoryImpl implements MovieRepository {
   final MovieLocalDataSource _local;
 
   @override
-  Future<Result<MovieSearchResult>> searchMovies(String query) async {
+  Future<Result<MovieSearchResult>> searchMovies(
+    String query, {
+    int page = 1,
+  }) async {
     final cacheKey = _cacheKey(query);
     try {
-      final response = await _remote.searchMovies(query);
+      final response = await _remote.searchMovies(query, page: page);
       // A failing cache write must not fail an otherwise good response.
       await _tryCache(
         () => _local.cacheSearchResults(
           cacheKey,
           response.results,
+          page: page,
           totalResults: response.totalResults,
         ),
       );
@@ -39,10 +43,19 @@ class MovieRepositoryImpl implements MovieRepository {
         MovieSearchResult(
           movies: _toEntities(response.results),
           totalResults: response.totalResults,
+          page: response.page,
+          totalPages: response.totalPages,
         ),
       );
     } on DioException catch (error) {
-      return _searchFromCache(cacheKey, mapDioException(error));
+      final failure = mapDioException(error);
+      // Only the first page may be answered from cache: the cache returns
+      // everything it holds for the query, and appending that to what is
+      // already on screen would show every row twice.
+      if (page > 1) {
+        return Result.err(failure);
+      }
+      return _searchFromCache(cacheKey, failure);
     } catch (error) {
       // Deserialisation runs after Dio has already returned, so a response
       // that parses as JSON but not as our model throws a plain TypeError.

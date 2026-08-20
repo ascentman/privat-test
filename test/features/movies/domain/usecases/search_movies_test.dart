@@ -19,33 +19,37 @@ void main() {
     useCase = SearchMovies(repository);
   });
 
-  test('rejects queries shorter than the minimum without hitting the repository', () async {
-    final result = await useCase('b');
+  test(
+    'rejects queries shorter than the minimum without hitting the repository',
+    () async {
+      final result = await useCase((query: 'b', page: 1));
 
-    expect(
-      result,
-      const Result<MovieSearchResult>.err(
-        Failure.queryTooShort(SearchMovies.minQueryLength),
-      ),
-    );
-    verifyZeroInteractions(repository);
-  });
+      expect(
+        result,
+        const Result<MovieSearchResult>.err(
+          Failure.queryTooShort(SearchMovies.minQueryLength),
+        ),
+      );
+      verifyZeroInteractions(repository);
+    },
+  );
 
   test('treats a whitespace-padded short query as too short', () async {
-    final result = await useCase('  b  ');
+    final result = await useCase((query: '  b  ', page: 1));
 
     expect(result.isOk, isFalse);
     verifyZeroInteractions(repository);
   });
 
   test('trims the query before delegating to the repository', () async {
-    when(() => repository.searchMovies(any())).thenAnswer(
-      (_) async => Result.ok(MovieSearchResult(movies: [tBlackAdam])),
-    );
+    when(() => repository.searchMovies(any(), page: any(named: 'page')))
+        .thenAnswer(
+          (_) async => Result.ok(MovieSearchResult(movies: [tBlackAdam])),
+        );
 
-    final result = await useCase('  black adam  ');
+    final result = await useCase((query: '  black adam  ', page: 1));
 
     expect(result, Result.ok(MovieSearchResult(movies: [tBlackAdam])));
-    verify(() => repository.searchMovies('black adam')).called(1);
+    verify(() => repository.searchMovies('black adam', page: 1)).called(1);
   });
 }
