@@ -12,10 +12,9 @@ import '../di/injection.dart';
 
 /// Matches a bare numeric location such as `/436270`.
 ///
-/// Bounded to ten digits rather than `\d+`: on the web `int` is a JS double,
-/// so a longer digit string would not overflow to null in [int.tryParse] the
-/// way it does on the VM — it would round to a wrong id and be looked up.
-/// TMDB ids are nowhere near that long.
+/// Bounded to ten digits rather than `\d+`. TMDB ids are nowhere near that
+/// long, and the bound keeps the guard independent of how a platform happens
+/// to parse an overlong number — see [AppRoutes.parseMovieId].
 final RegExp _bareMovieId = RegExp(r'^/(\d{1,10})/?$');
 
 GoRouter createRouter() => GoRouter(
