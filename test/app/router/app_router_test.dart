@@ -8,6 +8,7 @@ import 'package:privat_test/app/router/app_router.dart';
 import 'package:privat_test/features/movies/presentation/bloc/movie_details/movie_details_bloc.dart';
 import 'package:privat_test/features/movies/presentation/bloc/movie_search/movie_search_bloc.dart';
 import 'package:privat_test/features/movies/presentation/pages/movie_details_page.dart';
+import 'package:privat_test/features/movies/presentation/widgets/glass_circle_button.dart';
 import 'package:privat_test/features/movies/presentation/pages/movie_search_page.dart';
 
 import '../../helpers/test_data.dart';
@@ -99,6 +100,24 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(MovieSearchPage), findsOneWidget);
+  });
+
+  testWidgets('the back button on a deep-linked film returns to search', (
+    tester,
+  ) async {
+    // The stack being right is not the same as the button using it: this taps
+    // the widget the user actually presses.
+    final router = await pumpApp(tester);
+
+    router.go('/movie/436270');
+    await tester.pumpAndSettle();
+    expect(find.byType(MovieDetailsPage), findsOneWidget);
+
+    await tester.tap(find.byType(GlassCircleButton));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MovieSearchPage), findsOneWidget);
+    expect(find.byType(MovieDetailsPage), findsNothing);
   });
 
   testWidgets('the same holds for the bare numeric Android form', (

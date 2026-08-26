@@ -150,7 +150,7 @@ stable 3.x.
 flutter test
 ```
 
-81 tests covering the use case's minimum-length rule, the repository's cache
+82 tests covering the use case's minimum-length rule, the repository's cache
 fallback and failure translation, the local data source against real sqlite
 (ordering, per-query isolation, page appending, the cascade-delete regression),
 the v1→v2 migration and its backfill, both blocs including debounce,
