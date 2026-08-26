@@ -8,8 +8,8 @@ import 'package:privat_test/app/router/app_router.dart';
 import 'package:privat_test/features/movies/presentation/bloc/movie_details/movie_details_bloc.dart';
 import 'package:privat_test/features/movies/presentation/bloc/movie_search/movie_search_bloc.dart';
 import 'package:privat_test/features/movies/presentation/pages/movie_details_page.dart';
-import 'package:privat_test/features/movies/presentation/widgets/glass_circle_button.dart';
 import 'package:privat_test/features/movies/presentation/pages/movie_search_page.dart';
+import 'package:privat_test/features/movies/presentation/widgets/glass_circle_button.dart';
 
 import '../../helpers/test_data.dart';
 
