@@ -6,7 +6,13 @@
 /// close an import cycle.
 abstract final class AppRoutes {
   static const String search = '/';
-  static const String movieDetails = '/movie/:id';
+
+  /// The details route as go_router declares it — **relative**, because it is
+  /// nested under [search]. That nesting is what makes a deep link land on a
+  /// stack of two pages rather than one, so back has somewhere to go.
+  ///
+  /// The full path is still `/movie/:id`; [movie] builds it.
+  static const String movieDetailsRelative = 'movie/:id';
 
   static String movie(int id) => '/movie/$id';
 

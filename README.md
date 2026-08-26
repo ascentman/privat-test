@@ -150,8 +150,10 @@ stable 3.x.
 flutter test
 ```
 
-79 tests covering the use case's minimum-length rule, the repository's cache
+82 tests covering the use case's minimum-length rule, the repository's cache
 fallback and failure translation, the local data source against real sqlite
 (ordering, per-query isolation, page appending, the cascade-delete regression),
 the v1→v2 migration and its backfill, both blocs including debounce,
-cancellation and paging, both screens, and deep-link route resolution.
+cancellation and paging, both screens, and deep-link route resolution —
+including that a deep link leaves the search screen underneath it, so back has
+somewhere to go.

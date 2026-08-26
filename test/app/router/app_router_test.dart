@@ -9,6 +9,7 @@ import 'package:privat_test/features/movies/presentation/bloc/movie_details/movi
 import 'package:privat_test/features/movies/presentation/bloc/movie_search/movie_search_bloc.dart';
 import 'package:privat_test/features/movies/presentation/pages/movie_details_page.dart';
 import 'package:privat_test/features/movies/presentation/pages/movie_search_page.dart';
+import 'package:privat_test/features/movies/presentation/widgets/glass_circle_button.dart';
 
 import '../../helpers/test_data.dart';
 
@@ -81,6 +82,54 @@ void main() {
     expect(find.byType(MovieDetailsPage), findsOneWidget);
     verify(() => detailsBloc.add(const MovieDetailsEvent.requested(436270)))
         .called(1);
+  });
+
+  testWidgets('a deep link leaves search underneath it', (tester) async {
+    // The details route is nested under search precisely so go_router builds
+    // both pages. As siblings the stack held one page, and back had nowhere to
+    // go: the in-app button did nothing and the system gesture closed the app.
+    final router = await pumpApp(tester);
+
+    router.go('/movie/436270');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MovieDetailsPage), findsOneWidget);
+    expect(router.canPop(), isTrue, reason: 'back must have somewhere to go');
+
+    router.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MovieSearchPage), findsOneWidget);
+  });
+
+  testWidgets('the back button on a deep-linked film returns to search', (
+    tester,
+  ) async {
+    // The stack being right is not the same as the button using it: this taps
+    // the widget the user actually presses.
+    final router = await pumpApp(tester);
+
+    router.go('/movie/436270');
+    await tester.pumpAndSettle();
+    expect(find.byType(MovieDetailsPage), findsOneWidget);
+
+    await tester.tap(find.byType(GlassCircleButton));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MovieSearchPage), findsOneWidget);
+    expect(find.byType(MovieDetailsPage), findsNothing);
+  });
+
+  testWidgets('the same holds for the bare numeric Android form', (
+    tester,
+  ) async {
+    final router = await pumpApp(tester);
+
+    router.go('/436270');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MovieDetailsPage), findsOneWidget);
+    expect(router.canPop(), isTrue);
   });
 
   testWidgets('an implausibly long numeric path is not treated as an id', (
