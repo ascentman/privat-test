@@ -83,6 +83,36 @@ void main() {
         .called(1);
   });
 
+  testWidgets('a deep link leaves search underneath it', (tester) async {
+    // The details route is nested under search precisely so go_router builds
+    // both pages. As siblings the stack held one page, and back had nowhere to
+    // go: the in-app button did nothing and the system gesture closed the app.
+    final router = await pumpApp(tester);
+
+    router.go('/movie/436270');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MovieDetailsPage), findsOneWidget);
+    expect(router.canPop(), isTrue, reason: 'back must have somewhere to go');
+
+    router.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MovieSearchPage), findsOneWidget);
+  });
+
+  testWidgets('the same holds for the bare numeric Android form', (
+    tester,
+  ) async {
+    final router = await pumpApp(tester);
+
+    router.go('/436270');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MovieDetailsPage), findsOneWidget);
+    expect(router.canPop(), isTrue);
+  });
+
   testWidgets('an implausibly long numeric path is not treated as an id', (
     tester,
   ) async {

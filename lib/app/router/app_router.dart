@@ -27,23 +27,32 @@ GoRouter createRouter() => GoRouter(
         create: (_) => getIt<MovieSearchBloc>(),
         child: const MovieSearchPage(),
       ),
-    ),
-    GoRoute(
-      path: AppRoutes.movieDetails,
-      redirect: (context, state) =>
-          AppRoutes.parseMovieId(state.pathParameters['id']) == null
-          ? AppRoutes.search
-          : null,
-      builder: (context, state) {
-        final id = AppRoutes.parseMovieId(state.pathParameters['id'])!;
-        return BlocProvider(
-          create: (_) => getIt<MovieDetailsBloc>(),
-          child: MovieDetailsPage(
-            movieId: id,
-            initialMovie: state.extra is Movie ? state.extra! as Movie : null,
-          ),
-        );
-      },
+      routes: [
+        // Nested, not top-level: go_router builds the stack from the route
+        // tree, so a deep link straight to a film opens search *underneath*
+        // it. As a sibling route the stack held one page, and both the in-app
+        // back button and the system gesture had nothing to pop — the button
+        // did nothing and the gesture closed the app.
+        GoRoute(
+          path: AppRoutes.movieDetailsRelative,
+          redirect: (context, state) =>
+              AppRoutes.parseMovieId(state.pathParameters['id']) == null
+              ? AppRoutes.search
+              : null,
+          builder: (context, state) {
+            final id = AppRoutes.parseMovieId(state.pathParameters['id'])!;
+            return BlocProvider(
+              create: (_) => getIt<MovieDetailsBloc>(),
+              child: MovieDetailsPage(
+                movieId: id,
+                initialMovie: state.extra is Movie
+                    ? state.extra! as Movie
+                    : null,
+              ),
+            );
+          },
+        ),
+      ],
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

@@ -3,7 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:go_router/go_router.dart';
+
 import '../../../../core/config/app_config.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../domain/entities/movie.dart';
 import '../bloc/movie_details/movie_details_bloc.dart';
 import '../widgets/glass_circle_button.dart';
@@ -34,6 +37,19 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
   void _reload() => context.read<MovieDetailsBloc>().add(
     MovieDetailsEvent.requested(widget.movieId),
   );
+
+  /// Falls back to the search screen when there is nothing to pop.
+  ///
+  /// The route nesting means a deep link already opens search underneath this
+  /// page, so `canPop` is normally true. The fallback is here because a back
+  /// button that silently does nothing is the worst way for that to regress.
+  void _back(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.search);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +103,7 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                 child: GlassCircleButton(
                   icon: Icons.arrow_back_ios_new_rounded,
                   semanticLabel: 'Back',
-                  onPressed: () => Navigator.of(context).maybePop(),
+                  onPressed: () => _back(context),
                 ),
               ),
             ],
